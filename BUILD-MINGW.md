@@ -40,3 +40,12 @@ https://github.com/brechtsanders/winlibs_mingw/releases/tag/14.2.0posix-19.1.7-1
 
 本文の H: で始まるパスは元の作業PCの例。別の場所へcloneしてもビルドスクリプトはその配置場所を自動認識する。
 tools と build はGit管理対象外。
+
+## 経験値計算の回帰テスト
+
+    python tests/test_monster_exp.py
+
+実際の経験値計算関数を抽出して32bit版GCCでコンパイルし、最適化なし・ありの両方で検証する。
+高経験値の敵、経験値倍率、地上・増殖の減額、ユニーク、端数の繰り上がりを対象とする。
+経験値計算の中間値は64bit化し、従来の多倍長除算を置き換えた。
+元ソースのEUC-JPは維持している。Borland向けの64bit型宣言も用意しているが、今回のビルド確認はMinGWのみ。

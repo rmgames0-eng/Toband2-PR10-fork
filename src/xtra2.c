@@ -2139,106 +2139,57 @@ int mon_damage_mod(monster_type *m_ptr, int dam, bool force_damage)
 
 static s32b get_exp_from_mon_aux(int dam, monster_type *m_ptr, s32b max_lev, u32b *exp_frac_ptr)
 {
-	s32b div, new_exp;
-	u32b new_exp_frac;
 	monster_race *r_ptr = &r_info[m_ptr->r_idx];
-	int monnum_penarty = 0;
+	u64b numerator, divisor, remainder;
+	u32b fraction = 0;
+	s32b new_exp;
+	int penalty = 0, i;
 
-	u32b m_exp;
-	u32b m_exp_h, m_exp_l;
-	u32b div_h, div_l;
+	if (dam <= 0 || m_ptr->max_maxhp <= 0) return 0;
 
+	/* Widen before any multiplication, including the percentage numerator. */
+	numerator = (u64b)r_ptr->mexp * r_ptr->level;
+	divisor = (u64b)(max_lev + 2);
+	if (!(r_ptr->flags1 & RF1_UNIQUE))
+	{
+		numerator = numerator * extract_energy[m_ptr->mspeed] * ms_info[m_ptr->s_idx].exp_perc / 100;
+		divisor *= extract_energy[r_ptr->speed];
+	}
+	numerator *= dam;
+
+	if (r_ptr->flags1 & RF1_FORCE_MAXHP)
+		divisor *= (u64b)m_ptr->max_maxhp * 2;
+	else
+	{
+		/* The old numerator and denominator both contained 2 * max_maxhp.
+		 * Cancel that factor before multiplying to preserve the HP adjustment. */
+		divisor *= (u64b)r_ptr->hdice * (r_ptr->hside + 1);
+	}
+	if (!dun_level && !ambush_flag && (!(r_ptr->flags8 & RF8_WILD_ONLY) || !(r_ptr->flags1 & RF1_UNIQUE))) divisor *= 4;
 	if (r_ptr->flags2 & RF2_MULTIPLY)
 	{
-		monnum_penarty = r_ptr->r_pkills / 400;
-		if (monnum_penarty > 8) monnum_penarty = 8;
+		penalty = r_ptr->r_pkills / 400;
+		if (penalty > 8) penalty = 8;
 	}
-	if (r_ptr->flags1 & RF1_UNIQUE)
+	while (penalty-- > 0) divisor *= 4;
+	if (!divisor) return 0;
+
+	new_exp = (s32b)(numerator / divisor);
+	remainder = numerator % divisor;
+	/* Generate 16 fractional bits without overflowing remainder * 65536. */
+	for (i = 0; i < 16; i++)
 	{
-		m_exp = (long)r_ptr->mexp * r_ptr->level;
-		div = (max_lev + 2);
+		fraction <<= 1;
+		if (remainder >= divisor - remainder)
+		{
+			remainder -= divisor - remainder;
+			fraction |= 1;
+		}
+		else remainder *= 2;
 	}
-	else
-	{
-		m_exp = (long)r_ptr->mexp * r_ptr->level * extract_energy[m_ptr->mspeed] * ms_info[m_ptr->s_idx].exp_perc / 100;
-		div = (max_lev + 2) * extract_energy[r_ptr->speed];
-	}
-	m_exp_h = m_exp/0x10000L;
-	m_exp_l = m_exp%0x10000L;
-	m_exp_h *= dam;
-	m_exp_l *= dam;
-	m_exp_h += m_exp_l / 0x10000L;
-	m_exp_l %= 0x10000L;
-
-	/* real monster maxhp have effect on EXP */
-	if(!(r_ptr->flags1 & RF1_FORCE_MAXHP))
-	{
-	  u32b maxhp = m_ptr->max_maxhp*2;
-	  m_exp_h *= maxhp;
-	  m_exp_l *= maxhp;
-	  m_exp_h += m_exp_l / 0x10000L;
-	  m_exp_l %= 0x10000L;
-
-	  div *= r_ptr->hdice * (r_ptr->hside + 1);
-	}
-	if (!dun_level && !ambush_flag && (!(r_ptr->flags8 & RF8_WILD_ONLY) || !(r_ptr->flags1 & RF1_UNIQUE))) div *= 4;
-	div_h = div/0x10000L;
-	div_l = div%0x10000L;
-	div_h *= (m_ptr->max_maxhp*2);
-	div_l *= (m_ptr->max_maxhp*2);
-	div_h += div_l / 0x10000L;
-	div_l %= 0x10000L;
-
-	while (monnum_penarty)
-	{
-		div_h *= 4;
-		div_l *= 4;
-		div_h += div_l / 0x10000L;
-		div_l %= 0x10000L;
-		monnum_penarty--;
-	}
-
-	m_exp_l = (0x7fffffff & (m_exp_h << 16)) | m_exp_l;
-	m_exp_h = m_exp_h >> 15;
-	div_l = (0x7fffffff & (div_h << 16)) | div_l;
-	div_h = div_h >> 15;
-
-#define M_INT_GREATER63(h1,l1,h2,l2)  ( (h1>h2)||( (h1==h2)&&(l1>=l2)))
-#define M_INT_SUB63(h1,l1, h2,l2) {h1-=h2;if(l1<l2){l1+=0x80000000;h1--;}l1-=l2;}
-#define M_INT_LSHIFT63(h1,l1) {h1=(h1<<1)|(l1>>30);l1=(l1<<1)&0x7fffffff;}
-#define M_INT_RSHIFT63(h1,l1) {l1=(l1>>1)|(h1<<30);h1>>=1;}
-#define M_INT_DIV63(h1,l1,h2,l2,result) \
-	do { \
-		int bit = 1; \
-		result = 0; \
-		while (M_INT_GREATER63(h1,l1, h2, l2)) { M_INT_LSHIFT63(h2, l2); bit <<= 1; } \
-		for (bit >>= 1; bit >= 1; bit >>= 1) { \
-			M_INT_RSHIFT63(h2, l2); \
-			if (M_INT_GREATER63(h1, l1, h2, l2)) \
-			{ result |= bit; M_INT_SUB63(h1, l1, h2, l2); } \
-		} \
-	} while (0);
-
-	/* Give some experience for the kill */
-	M_INT_DIV63(m_exp_h, m_exp_l, div_h, div_l, new_exp);
-
-	/* Handle fractional experience */
-	/* multiply 0x10000L to remainder */
-	m_exp_h = (m_exp_h<<16) | (m_exp_l>>15);
-	m_exp_l <<= 16;
-	M_INT_DIV63(m_exp_h, m_exp_l, div_h, div_l, new_exp_frac);
-	new_exp_frac += *exp_frac_ptr;
-	/* Keep track of experience */
-	if (new_exp_frac >= 0x10000L)
-	{
-		new_exp++;
-		*exp_frac_ptr = (u16b)(new_exp_frac - 0x10000L);
-	}
-	else
-	{
-		*exp_frac_ptr = (u16b)new_exp_frac;
-	}
-
+	fraction += *exp_frac_ptr;
+	new_exp += fraction >> 16;
+	*exp_frac_ptr = fraction & 0xffff;
 	return new_exp;
 }
 

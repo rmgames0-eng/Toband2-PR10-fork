@@ -108,6 +108,13 @@ typedef unsigned int uint;
 /* The largest possible signed integer (pre-defined) */
 /* typedef long long; */
 
+/* Unsigned 64-bit intermediate arithmetic (including legacy Win32 compilers). */
+#if defined(__BORLANDC__) || defined(_MSC_VER)
+typedef unsigned __int64 u64b;
+#else
+typedef unsigned long long u64b;
+#endif
+
 /* The largest possible unsigned integer */
 typedef unsigned long huge;
 
