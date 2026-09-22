@@ -105,4 +105,3 @@ with tempfile.TemporaryDirectory(prefix='toband-exp-') as tmp:
         subprocess.run([str(GCC), '-std=gnu89', optimization, '-DWIN32', '-I',
                         str(ROOT / 'src'), str(cfile), '-o', str(exe)], check=True)
         subprocess.run([str(exe)], check=True)
-
