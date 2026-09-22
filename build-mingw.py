@@ -1,8 +1,11 @@
 from pathlib import Path
-import re, subprocess, shutil
+import argparse, re, subprocess
 root = Path(__file__).resolve().parent
 bin = root / 'tools/mingw32/bin'
-build = root / 'build/mingw'
+parser = argparse.ArgumentParser()
+parser.add_argument('--build-dir', type=Path, default=root / 'build/mingw')
+args = parser.parse_args()
+build = args.build_dir.resolve()
 build.mkdir(parents=True, exist_ok=True)
 makefile = (root / 'src/makefile.bcc').read_text()
 names = re.findall(r'([\w-]+)\.obj', makefile.split('OBJ =',1)[1].split('all :',1)[0])

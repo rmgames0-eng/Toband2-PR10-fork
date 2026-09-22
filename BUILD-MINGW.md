@@ -49,3 +49,12 @@ tools と build はGit管理対象外。
 高経験値の敵、経験値倍率、地上・増殖の減額、ユニーク、端数の繰り上がりを対象とする。
 経験値計算の中間値は64bit化し、従来の多倍長除算を置き換えた。
 元ソースのEUC-JPは維持している。Borland向けの64bit型宣言も用意しているが、今回のビルド確認はMinGWのみ。
+
+## 配布用ZIPの作成
+
+    python package-release.py pr10-expfix1
+
+build/dist にWindows 32bit版ZIPとSHA256を作成する。
+一時ディレクトリで新規ビルドし、Git管理された原版データから配布物を作る。
+普段のプレイ用フォルダーのセーブ・INI・生成データは含めない。
+別の保存先には --output-dir を指定する。ZIPにはコンパイラやPythonは不要。
