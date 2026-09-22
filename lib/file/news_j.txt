@@ -1,0 +1,21 @@
+
+                  ***************************************
+                  **            TOband2 X.X.X          **
+                  ***************************************
+
+          Based on Moria:    Copyright (c) 1985 Robert Alan Koeneke
+              and Umoria:    Copyright (c) 1989 James E. Wilson
+
+       Angband 2.7 - 2.9:    Ben Harrison (benh@phial.com)
+            日本語版 1.2:    しとしん, sayu, FIRST, TeO
+
+       Old ZAngband code:    (Mr) Topi Ylinen < f1toyl@uta.fi >
+       New ZAngband code:    Robert Ruehlmann < rr9@thangorodrim.net >
+    ZAngband 2.3.0 - ???:    The ZAngband DevTeam
+       ZAngband 日本語版:    板倉充洋 < m-itakura@geocities.co.jp >
+                変愚蛮怒:    Mr.hoge (echizen＠users.sourceforge.jp) & 多くの方々
+
+
+               TOband2: TOband検討委員会
+                     http://toband.sourceforge.jp/
+             バグ情報などは上記 URL にある掲示板へお願いします。

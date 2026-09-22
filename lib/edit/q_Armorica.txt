@@ -1,0 +1,31 @@
+# q_warg.txt
+
+# Name
+Q:$14:N:Warg problem
+Q:14:N:アルモリカ城の解放
+
+# type:num_mon:cur_num:max_num:level:r_idx:k_idx
+Q:$14:Q:1:0:0:1:6:112:0:2
+Q:14:Q:1:0:0:1:6:112:0:2
+
+# Description for quest
+?:[LEQ $QUEST14 2]
+Q:$14:T:Our scouts report a large number of Wargs in the dungeon.
+Q:$14:T:We don't know who set them on guard at 250 feet, but we
+Q:$14:T:think their task is to hinder resupply of our outposts
+Q:$14:T:in the dungeon. We offer you a small reward if you clear
+Q:$14:T:the path for the supplies.
+Q:14:T:・・・アルモリカ城に囚われたロンウェー公爵を助けなければ・・・。
+Q:14:T:ガルガスタンのやつらに捕まっている。処刑が近いってウワサなんだ。
+Q:14:T:なんとかしなくちゃいけない・・・。
+?:1
+
+# Description for quest reward
+?:[EQU $QUEST14 3]
+Q:$14:T:Since most of the supplies have been send to our troops
+Q:$14:T:in the dungeon, we can only give you a small reward.
+Q:$14:T:It awaits you outside.
+Q:14:T:ありがとうございました。ようやくこの街に活気が戻ってきました。
+Q:14:T:お礼を外に置いてあります。
+?:1
+

@@ -1,0 +1,28 @@
+TObandのモンスター
+
+参照したいオンライン・ヘルプの記号を押して下さい:
+
+    (a) TObandのモンスター          (jmonster.txt)
+    (b) モンスターの記号            (jmonster.txt#MonsterSymbols)
+    (c) モンスターの色              (jmonster.txt#MonsterColors)
+    (d) モンスターの思い出          (jmonster.txt#MonsterMemory)
+    (e) モンスターの武器耐性        (jmonster.txt#MonsterResWeapon)
+    (f) モンスターのフィールド      (jmonster.txt#MonsterField)
+    (g) ユニークモンスター          (jmonster.txt#Uniques)
+    (h) 正気度チェック              (jmonster.txt#EldritchHorror)
+    (i) ペット                      (jmonster.txt#Pets)
+    (j) 友好的なモンスター          (jmonster.txt#Friendly)
+
+    (?) ヘルプシステムの使用法      (jhelpinfo.txt)
+
+
+***** [a] jmonster.txt
+***** [b] jmonster.txt#MonsterSymbols
+***** [c] jmonster.txt#MonsterColors
+***** [d] jmonster.txt#MonsterMemory
+***** [e] jmonster.txt#MonsterResWeapon
+***** [f] jmonster.txt#MonsterField
+***** [g] jmonster.txt#Uniques
+***** [h] jmonster.txt#EldritchHorror
+***** [i] jmonster.txt#Pets
+***** [j] jmonster.txt#Friendly

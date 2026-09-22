@@ -1,0 +1,13 @@
+/tools/
+/build/
+__pycache__/
+*.pyc
+*.o
+*.obj
+*.exe
+*.res
+*.tds
+*.ilc
+*.ild
+*.ilf
+*.ils

@@ -1,0 +1,230 @@
+N:53:Grip, the Pet of Charch
+N:54:Wolf, the Pet of Charch
+N:55:Fang, the Pet of Charch
+4
+はクンクン鳴いた。
+は片足を引きずってほえた。
+はうなった。
+は悲しそうにあなたを見た。
+
+N:137:恍惚の『モルドバ』
+1
+「ニバス様はまだお戻りにならんのかッ！どうなされたというのだッ！？」
+
+N:914:我執の『ガンプ』
+2
+「あちちち、なんてこった！？　ガキだとナメてたらとんでもねぇ。退却だッ！貴様らの顔はけっして忘れんぞッ。おぼえていろッ！！」
+「くそッ、退却だッ！今度こそ、今度こそ貴様を倒してやるッ！　おぼえていろッ！」
+
+N:714:傭兵『ザパン・イリューダス』
+3
+「オレとしたことが、抜かったわ。くそッ、出直しだッ！」
+「くそっ、てめぇ強ぇなッ。首をとるどころの話じゃねぇぞ。」
+「ま、待ってくれ！た、頼む！　命だけは助けてくれッ！」
+
+N:855:ウォリアー『ヴァイス・ボゼック』
+5
+「くそ…、歯がたたん。ここはひとまず退却だ。」
+「た、助けてくれッ！な、なんでもするから！命だけは！」
+「た、頼むよ…。俺はブランタの野郎にそそのかされただけなんだ。あんたに刃向かうつもりはこれっぽっちもねえ。た、頼むから助けてくれよ！」
+「やめろーッ！オレを放せーッ！頼むーッ、殺さないでくれーッ！！」
+「頼むよ…、止めてくれーッ！！司祭様を呼んでくれーッ！オレはあの人に…、あの人の命令に従っただけなんだーッ！いやだーッ！、死にたくないーッ！やめてくれーッ！」
+
+N:761:竜使い『オクシオーヌ』
+1
+「父さん…、母さん…、仇を討てそうもないわ……。」
+
+N:763:騎士『ザエボス』
+1
+「くっ…、貴様ごとき若造に！コリタニ城は貴様にくれてやるッ！　この代償は高くつくぞッ！」
+
+N:767:『バルバトス枢機卿』
+2
+「近寄るなッ！！この無礼者めッ！」
+「な、何故だ！スウォンジーで勝利したのは我が軍だぞ！？なのに、何故、この私がこんな目にあわねばならんのだッ！？」
+
+N:573:『ロンウェー公爵』
+3
+「た、助けてくれッ，レオナール！」
+「ば、ばかなマネはよさんかッ！刃を突きつける相手が違うだろうッ！」
+「お、恩赦を出すッ！命だけはた、助けてくれーッ！！」
+
+N:791:魔術師『シェリー』
+1
+「くッ！　おぼえてなさいッ！！」
+
+N:799:暗黒騎士『マルティム』
+1
+「くそッ！　この借りは必ず返してやるぞッ！！」
+
+N:858:屍術師『ニバス』
+1
+「む……、これはいけませんね。ここはひとまず……。」
+
+N:807:暗黒騎士『バルバス』
+1
+「む……、このオレがプレッシャーをかけられるとはッ！……言い訳は立つか。」
+
+N:860:暗黒騎士『ランスロット』
+1
+「ム……、ここまでかッ！　……仕方ない！」
+
+# 変愚蛮怒に元々いたモンスターの台詞 (ここから)
+
+N:135:Mughash the Kobold Lord
+2
+は叫んだ。「臆病者どもめ！オレを置き去りにしやがって！」
+は慈悲を乞うた。
+
+N:180:Orfax, Son of Boldor
+N:237:Boldor, King of the Yeeks
+2
+はベソをかいて「こんなつもりじゃなかったんだ...」と言った。
+はシクシク泣いてうなった。
+
+N:200:Hobbes the Tiger
+1
+は叫んだ。「わー！僕をマンガの中に帰してくれ！」
+
+N:215:Golfimbul, the Hill Orc Chief
+N:330:Bolg, Son of Azog
+N:373:Azog, King of the Uruk-Hai
+6
+は叫んだ。「おい！オークにも権利があるんだぞ！」
+「おまえはオークに対して偏見を持ってるだけなんじゃないか？」
+「助けてくれ！『リンギル』をやるから！ホントだ！」
+「今度はもっとウルクをたくさん連れてくるからな！」
+「醜いからって憎まないでくれ！」
+はシクシク泣いてひれ伏した。
+
+N:382:Mime, the Nibelung
+8
+はすすり泣いた。
+は哀れっぽく泣いた。
+screams, 'Ohe! Ohe! Au! Au!'
+pleads, 'Let me go!'
+wails, 'Au! Au! Au!'
+says, 'I was so good to you, and this is my reward?'
+moans, 'Such ingratitude!'
+says, 'Go now, on your way!'
+
+N:383:Hagen, son of Alberich
+3
+「者共、立ち上がるのだ！武器を取れ！強い武器を！」
+shouts, 'There is danger! Danger!'
+cries, 'Woe! Woe!'
+
+N:409:Kharis the Powerslave
+3
+howls, 'Nnnnooo!'
+「死にたくない！なぜ神である私が死なねばならぬのか！」
+はあなたを呪った。
+
+N:419:Alberich the Nibelung King
+11
+「助けて！人殺し！人殺し！」
+screams, 'Aaah! Crushed! Shattered!'
+moans, 'Base trickery, foul deceit!'
+pleads, 'I have paid, now let me depart!'
+cries, 'O shameful humiliation!'
+shouts, 'Rascally rogue! Robber! Ruffian!'
+grumbles, 'You will regret this outrage, you wretch!'
+moans, 'Terrible vengeance I vow for this wrong!'
+says, 'Smile now, but you can never escape my curse!'
+wails, 'Alas! Alas! Woe is me!'
+moans, 'Do you mock me?'
+
+N:431:Grendel
+1
+whines, 'Mommy, save me!'
+
+N:595:Father Dagon
+N:596:Mother Hydra
+1
+「やめろ！私は絶滅危機生物に指定されてるんだぞ！」
+
+N:616:Kavlax the Many-Headed
+2
+の首の1つが「これは貴様のミスだ！」と言って別の首を噛んだ。
+は今までのことを全部もう死んだ首のせいにしている。
+
+N:655:Ubbo-Sathla, the Unbegotten Source
+N:857:Great Cthulhu
+5
+「私が悪いわけではない。生まれながらにしてこうだったのだ。」
+は弱々しくわけのわからないことを言った。
+mumbles, 'kill -9 adventurer, kill -9 adventurer', and you say 'No such process'
+は大量の傷口から緑の血を流している。
+は恐怖でまくしたてた。
+
+N:697:Smaug the Golden
+4
+groans in disbelief.
+roars furiously.
+「黒い矢？やめてくれ〜〜！」
+「そんなバカな！」
+
+N:712:Fafner the Dragon
+2
+wails: 'Who are you that have wounded me so? Speak me your name!'
+complains: 'Who kindled your childish courage to this deadly deed?'
+
+N:715:Glaurung, Father of the Dragons
+2
+は大量の傷口から黒い血を吹き出してのたうち回った。
+「覚えておれ！」
+
+N:733:Santa Claus
+3
+「お前は子供たちを失望させることになるんじゃぞ！いいのか？」
+「いないんじゃよ、ヴァージニアや。サンタなんて...もう...」
+はいいものを餌にあなたを買収しようとしている。
+
+N:743:The Phoenix
+1
+「私は必ず蘇る！」
+
+N:764:Uriel, Angel of Fire
+N:765:Azriel, Angel of Death
+N:769:Raphael, the Messenger
+3
+「主よ助け給え！もう駄目です！」
+「主が私に命じられたことなのだ。私は従わねばならぬ。」
+「主よ、主よ、何故に私をお見捨てになられたのか？」
+
+N:766:Ancalagon the Black
+2
+writhes as he spouts acidic blood from many wounds.
+says, 'My friends the Wyrms of Power will get you!'
+
+N:777:Bast, Goddess of Cats
+2
+spits, 'I'll be back, worse than ever!'
+は弱々しくうなった。
+
+N:825:The Witch-King of Angmar
+1
+wails, 'Nooooo!'
+
+N:830:Cantoras, the Skeletal Lord
+N:831:Mephistopheles, Lord of Hell
+N:804:Vecna, the Emperor Lich
+2
+「そんなバカな！」
+「殺すなら殺せ！ボスが黙っちゃいないぞ！」
+
+N:834:Ymir the Ice Giant
+N:835:Loki the Trickster
+N:837:Surtur the Giant Fire Demon
+3
+「こんなことならずっとアスガルドにいるんだった！」
+は命と引き替えなら何でも渡すと言っている。
+「私は戻ってくるぞ！サイバーデーモンどもを引きつれてな！」
+
+N:850:ゲリュオンの怪犬『オルトロス』
+3
+縮みあがってクンクン鳴いた。
+「もう郵便配達人を噛まないと約束する！」
+「おい！その丸めた新聞紙を振りかざすのはやめてくれ！」
+
+# 変愚蛮怒に元々いたモンスターの台詞 (ここまで)
