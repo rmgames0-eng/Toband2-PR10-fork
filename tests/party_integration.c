@@ -22,12 +22,20 @@ static errr test_xtra(int n, int v)
         if(auto_power) {
             int y,x;
             char row[81];
-            if(power_step==1) { auto_power=FALSE; Term_keypress(power_target); return 0; }
+            if(power_step==1) {
+                /* The roster must not present a reserve's historical HP as current. */
+                for(y=2;y<party_count+2;++y) {
+                    for(x=0;x<80;++x) row[x]=Term->scr->c[y][x];
+                    row[80]=0; assert(!strstr(row,"HP "));
+                }
+                auto_power=FALSE; Term_keypress(power_target); return 0;
+            }
             for(y=1;y<24;++y) {
                 for(x=0;x<80;++x) row[x]=Term->scr->c[y][x];
                 row[80]=0;
                 if(strstr(row,party_label)) {
-                    assert(row[1]=='a'); power_step=1; Term_keypress(row[1]); return 0;
+                    if (!use_menu) assert(row[1]=='a');
+                    power_step=1; Term_keypress(use_menu ? '\r' : row[1]); return 0;
                 }
             }
             for(y=0;y<24;++y) { for(x=0;x<80;++x) fputc(Term->scr->c[y][x],stderr); fputc('\n',stderr); }
@@ -65,6 +73,115 @@ static errr test_curs(int x,int y) { return 0; }
 static errr test_wipe(int x,int y,int n) { return 0; }
 static errr test_text(int x,int y,int n,byte a,cptr s) { return 0; }
 static void fail_quit(cptr s) { if(s) fprintf(stderr,"quit: %s\n",s); exit(3); }
+
+static long panel_number(int y, int x, int width)
+{
+    char buf[32]; int i;
+    for(i=0;i<width;++i) buf[i]=Term->scr->c[y][x+i];
+    buf[width]=0; return atol(buf);
+}
+
+static bool term_contains(term *t, const char *text)
+{
+    int y; char row[81];
+    for(y=0;y<24;++y) {
+        memcpy(row,t->scr->c[y],80); row[80]=0;
+        if(strstr(row,text)) return TRUE;
+    }
+    return FALSE;
+}
+
+static void display_regressions(void)
+{
+    int mode, x, y, old_class=p_ptr->pclass;
+    u32b realms;
+    char saved[24][80];
+    term sub;
+    /* Cancel the U menu and the roster, and choose the current member,
+     * with both keyboard-list and cursor-menu input styles. */
+    for(mode=0;mode<2;++mode) {
+        use_menu=mode; repeat_clear();
+        keys="          "; key_index=0; msg_print(NULL);
+        Term_clear(); Term_putstr(0,5,-1,TERM_WHITE,"original game screen");
+        for(y=0;y<24;++y) memcpy(saved[y],Term->scr->c[y],80);
+        keys="\033"; key_index=0;
+        do_cmd_racial_power();
+        assert(character_icky==0 && energy_use==0);
+        for(y=0;y<24;++y) assert(!memcmp(saved[y],Term->scr->c[y],80));
+        auto_power=TRUE; power_step=0; power_target=ESCAPE;
+        do_cmd_racial_power();
+        assert(character_icky==0 && energy_use==0);
+        for(y=0;y<24;++y) assert(!memcmp(saved[y],Term->scr->c[y],80));
+        auto_power=TRUE; power_step=0; power_target='a'+party_active;
+        do_cmd_racial_power();
+        assert(character_icky==0 && energy_use==0);
+    }
+    use_menu=FALSE;
+    /* Partial MP refresh must erase the previous caster's MP for a gunner. */
+    p_ptr->pclass=CLASS_WIZARD; party_rebind();
+    p_ptr->csp=12; p_ptr->msp=34;
+    p_ptr->redraw=PR_MANA; redraw_stuff();
+    assert(panel_number(ROW_CURSP,COL_CURSP+2,5)==12);
+    assert(panel_number(ROW_CURSP,COL_CURSP+8,4)==34);
+    p_ptr->pclass=CLASS_GUNNER; party_rebind();
+    p_ptr->redraw=PR_MANA; redraw_stuff();
+    for(x=0;x<13;++x) assert(Term->scr->c[ROW_CURSP][COL_CURSP+x]==' ');
+    p_ptr->pclass=old_class; party_rebind();
+
+    /* Race, title, stats and armor refresh from the active character. */
+    p_ptr->redraw=PR_MISC|PR_TITLE|PR_STATS|PR_ARMOR; redraw_stuff();
+    for(mode=0;mode<A_MAX;++mode) {
+        char stat[32];
+        cnv_stat(p_ptr->stat_use[mode],stat);
+        assert(!memcmp(&Term->scr->c[ROW_STAT+mode][COL_STAT+6],stat,strlen(stat)));
+    }
+
+    /* Render all realm indices, including 10 and 11, as the sole realm.
+     * Every first spell belongs on the first row of its column. */
+    realms=cp_ptr->realm_choices;
+    for(mode=0;mode<MAX_REALM;++mode) {
+        const char *name;
+        cp_ptr->realm_choices=1L<<mode;
+        display_spell_list();
+        x=27*(mode%3);
+        assert(Term->scr->c[0][x]=='a' && Term->scr->c[0][x+1]=='/');
+        name=do_spell(mode+1,0,SPELL_NAME);
+        if(mp_ptr->info[mode][0].slevel<99 && name && *name)
+            assert(Term->scr->c[0][x+5]==*name);
+    }
+    cp_ptr->realm_choices=realms;
+
+    /* A spell subwindow must clear text when changing to a non-caster;
+     * equipment and inventory subwindows must refresh without changing Term. */
+    term_init(&sub,80,24,256);
+    sub.xtra_hook=test_xtra; sub.curs_hook=test_curs;
+    sub.wipe_hook=test_wipe; sub.text_hook=test_text;
+    angband_term[1]=&sub;
+    for(mode=0;mode<3;++mode) {
+        window_flag[1]=mode==0 ? PW_SPELL : mode==1 ? PW_EQUIP : PW_INVEN;
+        Term_activate(&sub); Term_putstr(0,23,-1,TERM_WHITE,"stale window");
+        Term_activate(&test_term);
+        p_ptr->window=window_flag[1]; window_stuff();
+        assert(Term==&test_term);
+        for(x=0;x<12;++x) assert(sub.scr->c[23][x]==' ');
+    }
+    for(mode=0;mode<2;++mode) {
+        char description[MAX_NLEN];
+        keys="          "; key_index=0; msg_print(NULL);
+        assert(party_switch(1-party_active));
+        window_flag[1]=PW_PLAYER;
+        p_ptr->window=PW_PLAYER; window_stuff();
+        assert(term_contains(&sub,player_name));
+        assert(term_contains(&sub,c_name+cp_ptr->name));
+        window_flag[1]=PW_EQUIP;
+        p_ptr->window=PW_EQUIP; window_stuff();
+        object_desc(description,&inventory[INVEN_RARM],0);
+        assert(!memcmp(&sub.scr->c[0][3],description,MIN(strlen(description),40)));
+        assert(Term==&test_term);
+    }
+    angband_term[1]=NULL; window_flag[1]=0;
+    term_nuke(&sub);
+}
 
 int main(int argc,char **argv)
 {
@@ -187,6 +304,7 @@ int main(int argc,char **argv)
         char displayed[6];
         p_ptr->chp=p_ptr->mhp;
         keys="          "; key_index=0; msg_print(NULL);
+        use_menu=i%2;
         power_target=party_active ? 'a' : 'b';
         auto_power=TRUE; power_step=0;
         do_cmd_racial_power();
@@ -198,6 +316,7 @@ int main(int argc,char **argv)
         displayed[5]=0;
         assert(atol(displayed)==p_ptr->chp);
     }
+    display_regressions();
     character_generated=FALSE;
     p_ptr->is_dead=DEATH_DEAD;
     assert(save_player()); party_reset(); assert(load_player());

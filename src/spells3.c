@@ -3727,7 +3727,7 @@ void display_spell_list(void)
 {
 	int             i, j;
 	int             y, x;
-	int             m[9];
+	int             next_y[3] = {0, 0, 0};
 	magic_type      *s_ptr;
 	char            name[80];
 	char            out_val[160];
@@ -3749,11 +3749,8 @@ void display_spell_list(void)
 
 		if (!can_use_realm(j + 1)) continue;
 
-		/* Reset vertical */
-		m[j] = 0;
-
 		/* Vertical location */
-		y = (j < 3) ? 0 : (m[j - 3] + 2);
+		y = next_y[j % 3];
 
 		/* Horizontal location */
 		x = 27 * (j % 3);
@@ -3795,15 +3792,13 @@ void display_spell_list(void)
 			sprintf(out_val, "%c/%c) %-20.20s",
 				I2A(n / 8), I2A(n % 8), name);
 
-			/* Track maximum */
-			m[j] = y + n;
-
 			/* Dump onto the window */
-			Term_putstr(x, m[j], -1, a, out_val);
+			Term_putstr(x, y + n, -1, a, out_val);
 
 			/* Next */
 			n++;
 		}
+		next_y[j % 3] = y + n + 1;
 	}
 }
 

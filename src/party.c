@@ -181,16 +181,19 @@ void do_cmd_party(void)
     screen_save();
     Term_clear();
     prt("交代する仲間を選んでください（ESCで中断）", 0, 0);
+    prt("HP・MPは現在の割合を引き継ぎます。", 1, 0);
     for (i = 0; i < party_count; ++i)
     {
         party_member *m = &party_members[i];
-        strnfmt(buf, sizeof(buf), "%c) %s%s %s / %s Lv%ld  HP %ld/%ld MP %ld/%ld",
+        strnfmt(buf, sizeof(buf), "%c) %s%s %s / %s Lv%ld",
             I2A(i), i == party_active ? "*" : "", m->name,
             p_name + race_info[m->player.prace].name, c_name + class_info[m->player.pclass].name,
-            (long)m->player.lev, (long)m->player.chp, (long)m->player.mhp,
-            (long)m->player.csp, (long)m->player.msp);
+            (long)m->player.lev);
         prt(buf, i + 2, 0);
     }
+    strnfmt(buf, sizeof(buf), "現在: HP %ld/%ld  MP %ld/%ld",
+        (long)p_ptr->chp, (long)p_ptr->mhp, (long)p_ptr->csp, (long)p_ptr->msp);
+    prt(buf, party_count + 3, 0);
     while (get_com("誰に交代しますか？ ", &ch, FALSE))
     {
         i = A2I(ch);

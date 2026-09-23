@@ -956,7 +956,11 @@ static void prt_sp(void)
 	char tmp[32];
 	byte color;
 
-	if (pclass_is_(CLASS_GUNNER)) return;
+	if (pclass_is_(CLASS_GUNNER))
+	{
+		Term_erase(COL_CURSP, ROW_CURSP, 13);
+		return;
+	}
 
 #ifdef JP
 	put_str("MP", ROW_CURSP, COL_CURSP);
