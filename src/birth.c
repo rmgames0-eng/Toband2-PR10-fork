@@ -2387,7 +2387,7 @@ void party_birth_member(void)
     object_type *old_inventory = inventory, *new_inventory;
     char old_name[32];
     bool old_xtra = character_xtra, old_generated = character_generated;
-    bool old_can_save = can_save, old_icky = character_icky;
+    bool old_can_save = can_save;
     bool old_monk = monk_armour_aux, old_notify = monk_notify_aux;
     int old_inven = inven_cnt, old_equip = equip_cnt, old_energy = energy_use;
     s16b old_weight = mw_old_weight, old_melee = mw_diff_to_melee;
@@ -2405,7 +2405,7 @@ void party_birth_member(void)
     character_generated = FALSE;
     p_ptr = recruit;
     inventory = new_inventory;
-    character_icky = TRUE;
+    /* screen_save/load owns the modal depth, including a surrounding home. */
     do
     {
         WIPE(recruit, player_type);
@@ -2466,7 +2466,6 @@ void party_birth_member(void)
     inven_cnt = old_inven; equip_cnt = old_equip;
     energy_use = old_energy;
     party_rebind();
-    character_icky = old_icky;
     character_generated = old_generated;
     character_xtra = old_xtra;
     can_save = old_can_save;

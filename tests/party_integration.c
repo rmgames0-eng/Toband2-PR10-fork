@@ -8,6 +8,7 @@ static const char *keys;
 static int key_index;
 static const char party_label[]="\x8c\xf0\x91\xe3";
 static int power_step;
+static char power_target = 'b';
 static bool auto_power;
 static bool auto_recruit;
 static int auto_count = -1;
@@ -21,7 +22,7 @@ static errr test_xtra(int n, int v)
         if(auto_power) {
             int y,x;
             char row[81];
-            if(power_step==1) { auto_power=FALSE; Term_keypress('b'); return 0; }
+            if(power_step==1) { auto_power=FALSE; Term_keypress(power_target); return 0; }
             for(y=1;y<24;++y) {
                 for(x=0;x<80;++x) row[x]=Term->scr->c[y][x];
                 row[80]=0;
@@ -29,6 +30,7 @@ static errr test_xtra(int n, int v)
                     assert(row[1]=='a'); power_step=1; Term_keypress(row[1]); return 0;
                 }
             }
+            for(y=0;y<24;++y) { for(x=0;x<80;++x) fputc(Term->scr->c[y][x],stderr); fputc('\n',stderr); }
             fprintf(stderr,"Party entry missing from U menu\n"); exit(4);
         }
         if (auto_recruit && !party_creating) {
@@ -110,6 +112,7 @@ int main(int argc,char **argv)
     keys="Q=\r\r\r\rQ\r\033Recruit\rQ\r"; key_index=0;
     party_birth_member();
     assert(party_count==2 && party_active==0 && !party_creating);
+    assert(character_icky==0);
     original.redraw=p_ptr->redraw; original.window=p_ptr->window;
     assert(!memcmp(&original,p_ptr,sizeof(original)));
     assert(!memcmp(original_pack,inventory,sizeof(original_pack)));
@@ -155,12 +158,15 @@ int main(int argc,char **argv)
         cave[py][px].feat=FEAT_SHOP_HEAD+STORE_HOME;
         keys="\033"; key_index=0;
         do_cmd_store();
+        assert(character_icky==0);
         assert(party_count==0 && party_rewards==0 && party_can_recruit());
         auto_recruit=TRUE; home_test=TRUE; home_started=FALSE; home_target=2;
         do_cmd_store();
+        assert(character_icky==0);
         assert(party_count==2 && party_rewards==1 && party_can_recruit());
         home_started=FALSE; home_target=3;
         do_cmd_store();
+        assert(character_icky==0);
         assert(party_count==3 && party_rewards==3 && !party_can_recruit());
         do_cmd_party_recruit();
         assert(party_count==3);
@@ -171,6 +177,28 @@ int main(int argc,char **argv)
     assert(!strcmp(party_members[1].name,"Recruit"));
     assert(party_members[1].player.lev==1);
     assert(py==1 && px==1 && cave[py][px].feat==FEAT_FLOOR);
+    /* Render real HP after repeated U switches and real damage handling.
+     * Prior tests ran with character_generated false and missed frozen UI. */
+    character_generated=TRUE;
+    character_dungeon=FALSE;
+    auto_more=TRUE;
+    for(i=0;i<12;++i) {
+        int x;
+        char displayed[6];
+        p_ptr->chp=p_ptr->mhp;
+        keys="          "; key_index=0; msg_print(NULL);
+        power_target=party_active ? 'a' : 'b';
+        auto_power=TRUE; power_step=0;
+        do_cmd_racial_power();
+        assert(character_icky==0 && !p_ptr->is_dead && p_ptr->chp>1);
+        /* This fixture has no town/wilderness UI; render the HP panel only. */
+        p_ptr->update=0; p_ptr->redraw=PR_HP; p_ptr->window=0;
+        take_hit(DAMAGE_GENO,1,"party display regression");
+        for(x=0;x<5;++x) displayed[x]=Term->scr->c[ROW_CURHP][COL_CURHP+2+x];
+        displayed[5]=0;
+        assert(atol(displayed)==p_ptr->chp);
+    }
+    character_generated=FALSE;
     p_ptr->is_dead=DEATH_DEAD;
     assert(save_player()); party_reset(); assert(load_player());
     assert(party_count==2 && party_rewards==3);
