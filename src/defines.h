@@ -62,7 +62,7 @@
 #define T_VER_MAJOR 0
 #define T_VER_MINOR 10
 #define T_VER_PATCH 0
-#define T_VER_EXTRA 0
+#define T_VER_EXTRA 1
 
 
 #define ANGBAND_2_8_1

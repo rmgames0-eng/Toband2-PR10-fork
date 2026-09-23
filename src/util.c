@@ -4713,6 +4713,12 @@ static int repeat__idx = 0;
 static int repeat__key[REPEAT_MAX];
 
 
+/* A character switch invalidates recorded ability and spell indexes. */
+void repeat_clear(void)
+{
+    repeat__cnt = repeat__idx = 0;
+}
+
 void repeat_push(int what)
 {
 	/* Too many keys */

@@ -11,6 +11,7 @@
  */
 
 #include "angband.h"
+#include "party.h"
 
 
 static bool do_cmd_archer(void)
@@ -3243,7 +3244,7 @@ static bool special_blow_aux(s32b command)
  */
 void do_cmd_racial_power(void)
 {
-	power_desc_type power_desc[36];
+	power_desc_type power_desc[64];
 	int             num, i = 0;
 	int             ask = TRUE;
 	int             lvl = p_ptr->lev;
@@ -3255,7 +3256,7 @@ void do_cmd_racial_power(void)
 	int menu_line = (use_menu ? 1 : 0);
 
 
-	for (num = 0; num < 36; num++)
+	for (num = 0; num < 64; num++)
 	{
 		strcpy(power_desc[num].name, "");
 		power_desc[num].number = 0;
@@ -3263,17 +3264,6 @@ void do_cmd_racial_power(void)
 
 	num = 0;
 
-	if (p_ptr->confused)
-	{
-#ifdef JP
-		msg_print("混乱していて特殊能力を使えません！");
-#else
-		msg_print("You are too confused to use any powers!");
-#endif
-
-		energy_use = 0;
-		return;
-	}
 
 	if (!(cp_ptr->c_flags & (PCF_REINCARNATE | PCF_DEMON | PCF_UNDEAD)))
 	{
@@ -4604,6 +4594,16 @@ void do_cmd_racial_power(void)
 		}
 	}
 
+    if (!astral_mode && party_count > 1)
+    {
+        strcpy(power_desc[num].name, "主人公交代");
+        power_desc[num].level = 1;
+        power_desc[num].cost = 0;
+        power_desc[num].stat = A_WIS;
+        power_desc[num].fail = 0;
+        power_desc[num++].number = PARTY_POWER;
+    }
+
 	/* Nothing chosen yet */
 	flag = FALSE;
 
@@ -4744,7 +4744,7 @@ void do_cmd_racial_power(void)
 					}
 					strcat(dummy, format("%-23.23s %2d %4d %3d%%",
 						power_desc[ctr].name, power_desc[ctr].level, power_desc[ctr].cost,
-						100 - racial_chance(&power_desc[ctr])));
+						power_desc[ctr].number == PARTY_POWER ? 0 : 100 - racial_chance(&power_desc[ctr])));
 					prt(dummy, y1, x1);
 					ctr++;
 				}
@@ -4829,6 +4829,19 @@ void do_cmd_racial_power(void)
 	}
 	repeat_push(i);
 	} /*if (!repeat_pull(&i) || ...)*/
+    if (power_desc[i].number == PARTY_POWER) { do_cmd_party(); return; }
+	if (p_ptr->confused)
+	{
+#ifdef JP
+		msg_print("混乱していて特殊能力を使えません！");
+#else
+		msg_print("You are too confused to use any powers!");
+#endif
+
+		energy_use = 0;
+		return;
+	}
+
 	switch (racial_aux(&power_desc[i]))
 	{
 	case 1:

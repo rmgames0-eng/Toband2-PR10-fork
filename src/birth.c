@@ -9,6 +9,7 @@
  */
 
 #include "angband.h"
+#include "party.h"
 
 /*
  * Forward declare
@@ -44,6 +45,7 @@ static cptr realm_jouhou[MAX_REALM] =
 
 static void birth_quit(void)
 {
+	if (party_creating) return;
 	remove_loc();
 	quit(NULL);
 }
@@ -929,6 +931,7 @@ static int get_player_choice(birth_menu *choices, int num, int col, int wid,
 		switch (c)
 		{
 		case 'Q':
+			if (party_creating) break;
 			quit(NULL);
 
 		case 'S':
@@ -954,6 +957,7 @@ static int get_player_choice(birth_menu *choices, int num, int col, int wid,
 			break;
 
 		case '=':
+			if (party_creating) break;
 			screen_save();
 #ifdef JP
 			do_cmd_options_aux(OPT_PAGE_BIRTH, "初期オプション((*)はスコアに影響)");
@@ -1339,6 +1343,13 @@ static bool player_birth_aux_1(void)
 	Term_putstr(QUESTION_COL + 56, INSTRUCT_ROW + 2, -1, TERM_L_GREEN, "Q");
 #endif
 
+    if (party_creating)
+    {
+        Term_erase(QUESTION_COL, INSTRUCT_ROW + 2, 255);
+        Term_putstr(QUESTION_COL, INSTRUCT_ROW + 2, -1, TERM_WHITE,
+                    "仲間の作成は中断できません。'?' でヘルプを表示します。");
+    }
+
 	/* Choose the player's sex */
 	if (!get_player_sex()) return (FALSE);
 
@@ -1363,6 +1374,8 @@ static bool player_birth_aux_1(void)
 	/* Clear */
 	Term_clear();
 
+	if (!party_creating)
+	{
 	screen_save();
 #ifdef JP
 	do_cmd_options_aux(OPT_PAGE_BIRTH, "初期オプション((*)はスコアに影響)");
@@ -1370,12 +1383,13 @@ static bool player_birth_aux_1(void)
 	do_cmd_options_aux(OPT_PAGE_BIRTH, "Startup Opts((*)s effect score)");
 #endif
 	screen_load();
+	}
 
 	/* Clear */
 	Term_clear();
 
 	/* Reset turn; before auto-roll and after choosing race */
-	init_turn();
+	if (!party_creating) init_turn();
 
 	/* Done */
 	return (TRUE);
@@ -1556,6 +1570,7 @@ static bool player_birth_aux_2(void)
 		{
 		/* Quit */
 		case 'Q':
+			if (party_creating) break;
 			quit(NULL);
 
 		/* Start over */
@@ -1833,7 +1848,7 @@ static bool player_birth_full(void)
 	get_name();
 
 	/* Process the player name (accept as savefile name) */
-	process_player_name(creating_savefile);
+	if (!party_creating) process_player_name(creating_savefile);
 
 	/* Display the player */
 	display_player(0);
@@ -1848,8 +1863,9 @@ static bool player_birth_full(void)
 #endif
 
 
-	/* Get a key */
-	c = inkey();
+    if (party_creating) prt("[ S: 初めから / Enter: 仲間に加える ]", 23, 0);
+    /* Recruitment cannot be cancelled or accepted accidentally with Q. */
+    do { c = inkey(); } while (party_creating && c != '\r' && c != '\n' && c != 'S');
 
 	/* Quit */
 	if (c == 'Q') birth_quit();
@@ -1858,12 +1874,15 @@ static bool player_birth_full(void)
 	if (c == 'S') return (FALSE);
 
 
+	if (!party_creating)
+	{
 	/* Initialize random quests */
 	init_dungeon_quests();
 
 	/* Save character data for quick start */
 	save_prev_data(&previous_char);
 	previous_char.quick_ok = TRUE;
+	}
 
 	/* Accept */
 	return (TRUE);
@@ -1926,6 +1945,7 @@ static bool player_birth_quick(bool prepare_astral)
 		switch (inkey())
 		{
 		case 'Q':
+			if (party_creating) break;
 			quit(NULL);
 
 		case 'Y':
@@ -2047,6 +2067,7 @@ void player_birth(void)
 	bool allow_astral_mode;
 	s32b ancestor_au[MAX_GOLD + 1];
 
+	party_reset();
 	playtime = 0;
 
 	/* 
@@ -2357,4 +2378,103 @@ void dump_yourself(FILE *fff)
 #endif
 #endif
 	}
+}
+
+/* Create a recruit without invoking the world-resetting player_birth/player_wipe. */
+void party_birth_member(void)
+{
+    player_type *old_player = p_ptr, *recruit;
+    object_type *old_inventory = inventory, *new_inventory;
+    char old_name[32];
+    bool old_xtra = character_xtra, old_generated = character_generated;
+    bool old_can_save = can_save, old_icky = character_icky;
+    bool old_monk = monk_armour_aux, old_notify = monk_notify_aux;
+    int old_inven = inven_cnt, old_equip = equip_cnt, old_energy = energy_use;
+    s16b old_weight = mw_old_weight, old_melee = mw_diff_to_melee;
+    int i, slot;
+    party_member *member;
+
+    if (party_count >= MAX_PARTY_MEMBERS) return;
+    strcpy(old_name, player_name);
+    C_MAKE(recruit, 1, player_type);
+    C_MAKE(new_inventory, INVEN_TOTAL, object_type);
+    screen_save();
+    party_creating = TRUE;
+    can_save = FALSE;
+    character_xtra = TRUE;
+    character_generated = FALSE;
+    p_ptr = recruit;
+    inventory = new_inventory;
+    character_icky = TRUE;
+    do
+    {
+        WIPE(recruit, player_type);
+        C_WIPE(new_inventory, INVEN_TOTAL, object_type);
+        inven_cnt = equip_cnt = 0;
+        mw_old_weight = mw_diff_to_melee = 0;
+        p_ptr->lev = p_ptr->max_plv = p_ptr->max_max_plv = 1;
+        p_ptr->food = PY_FOOD_FULL - 1;
+        p_ptr->death_regen = 5000;
+        strcpy(player_name, "PLAYER");
+        party_rebind();
+    } while (!player_birth_full());
+
+    /* Equipment only: no gold, consumables or shared pack items are granted. */
+    for (i = 0; i < MAX_START_ITEMS; ++i)
+    {
+        const start_item *start = &cp_ptr->start_items[i];
+        object_type obj;
+        int kind;
+        if (!start->tval) continue;
+        kind = lookup_kind(start->tval, start->sval);
+        if (!kind) continue;
+        object_prep(&obj, kind);
+        slot = wield_slot(&obj);
+        if (slot < INVEN_RARM || slot >= INVEN_TOTAL || inventory[slot].k_idx) continue;
+        obj.number = 1;
+        object_aware(&obj);
+        object_known(&obj);
+        inventory[slot] = obj;
+    }
+    if (!(cp_ptr->c_flags & PCF_SEE_DARK_GRID) && !inventory[INVEN_LITE].k_idx)
+    {
+        object_prep(&inventory[INVEN_LITE], lookup_kind(TV_LITE, SV_LITE_TORCH));
+        inventory[INVEN_LITE].number = 1;
+        inventory[INVEN_LITE].xtra4 = 2500;
+        object_aware(&inventory[INVEN_LITE]);
+        object_known(&inventory[INVEN_LITE]);
+    }
+    p_ptr->total_weight = 0;
+    for (i = INVEN_RARM; i < INVEN_TOTAL; ++i)
+        if (inventory[i].k_idx) { ++equip_cnt; p_ptr->total_weight += inventory[i].weight; }
+    p_ptr->update = PU_BONUS | PU_HP | PU_MANA;
+    update_stuff();
+    p_ptr->chp = p_ptr->mhp;
+    p_ptr->csp = p_ptr->msp;
+    member = &party_members[party_count];
+    member->player = *p_ptr;
+    strcpy(member->name, player_name);
+    memcpy(member->equipment, &inventory[INVEN_RARM], sizeof(member->equipment));
+    member->weapon_weight = member->weapon_melee = 0;
+    ++party_count;
+
+    /* Commit the complete recruit, then restore the original protagonist. */
+    p_ptr = old_player;
+    inventory = old_inventory;
+    strcpy(player_name, old_name);
+    mw_old_weight = old_weight; mw_diff_to_melee = old_melee;
+    inven_cnt = old_inven; equip_cnt = old_equip;
+    energy_use = old_energy;
+    party_rebind();
+    character_icky = old_icky;
+    character_generated = old_generated;
+    character_xtra = old_xtra;
+    can_save = old_can_save;
+    monk_armour_aux = old_monk; monk_notify_aux = old_notify;
+    party_creating = FALSE;
+    C_KILL(recruit, 1, player_type);
+    C_KILL(new_inventory, INVEN_TOTAL, object_type);
+    screen_load();
+    p_ptr->redraw |= PR_WIPE | PR_BASIC | PR_EXTRA | PR_MAP;
+    p_ptr->window |= PW_PLAYER | PW_INVEN | PW_EQUIP;
 }

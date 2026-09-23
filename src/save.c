@@ -3,6 +3,7 @@
 /* Purpose: interact with savefiles */
 
 #include "angband.h"
+#include "party.h"
 
 
 
@@ -1282,6 +1283,39 @@ static bool wr_dungeon(void)
 /*
  * Actually write a save-file
  */
+/* Versioned party extension, written even for dead characters. */
+static void wr_party(void)
+{
+    int m, i, j;
+    party_capture();
+    wr_byte(PARTY_SAVE_VERSION);
+    wr_byte(party_count);
+    wr_byte(party_active);
+    wr_byte(party_rewards);
+    for (m = 0; m < party_count; ++m)
+    {
+        party_member *member = &party_members[m];
+        wr_string(member->name);
+        for (j = 0; j < 4; ++j) wr_string(member->player.history[j]);
+#define PARTY_FIELD(type, name, count) for (i = 0; i < (count); ++i) wr_##type(((type *)&member->player.name)[i]);
+#include "party-fields.h"
+#undef PARTY_FIELD
+        for (j = 0; j < MAX_CLASS; ++j)
+        {
+            wr_s32b(member->player.cexp_info[j].max_max_cexp);
+            wr_s32b(member->player.cexp_info[j].max_cexp);
+            wr_s32b(member->player.cexp_info[j].cexp);
+            wr_u32b(member->player.cexp_info[j].cexp_frac);
+            wr_s32b(member->player.cexp_info[j].clev);
+            wr_s32b(member->player.cexp_info[j].max_clev);
+            wr_s32b(member->player.cexp_info[j].max_max_clev);
+        }
+        wr_s16b(member->weapon_weight);
+        wr_s16b(member->weapon_melee);
+        for (i = 0; i < INVEN_TOTAL - INVEN_RARM; ++i) wr_item(&member->equipment[i]);
+    }
+}
+
 static bool wr_savefile_new(void)
 {
 	int        i, j;
@@ -1590,6 +1624,8 @@ static bool wr_savefile_new(void)
 
 
 	/* Write the "value check-sum" */
+	wr_party();
+
 	wr_u32b(v_stamp);
 
 	/* Write the "encoded checksum" */
@@ -1673,6 +1709,8 @@ bool save_player(void)
 	int             result = FALSE;
 
 	char    safe[1024];
+
+	if (party_creating) return FALSE;
 
 
 #ifdef SET_UID

@@ -91,7 +91,7 @@ SRCS = \
 #	main-cap.o main-gcu.o main-x11.o main-xaw.o main.o
 
 OBJS = \
-	artifact.o autopick.o birth.o bldg.o cave.o \
+	artifact.o autopick.o birth.o party.o bldg.o cave.o \
 	cmd1.o cmd2.o cmd3.o cmd4.o cmd5.o cmd6.o \
 	dungeon.o effects.o files.o flavor.o floors.o generate.o \
 	grid.o init1.o init2.o japanese.o \
@@ -326,13 +326,14 @@ HDRS = \
 
 INCS = \
 	angband.h \
-	z-config.h defines.h types.h externs.h \
+	z-config.h defines.h types.h externs.h party.h party-fields.h \
 	z-term.h z-rand.h z-util.h z-virt.h z-form.h $(HDRS)
 
 
 artifact.o: artifact.c $(INCS)
 bldg.o: bldg.c $(INCS)
 birth.o: birth.c $(INCS)
+party.o: party.c $(INCS)
 cave.o: cave.c $(INCS)
 cmd1.o: cmd1.c $(INCS)
 cmd2.o: cmd2.c $(INCS)

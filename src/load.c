@@ -3,6 +3,7 @@
 /* Purpose: support for loading savefiles -BEN- */
 
 #include "angband.h"
+#include "party.h"
 
 
 /*
@@ -2305,6 +2306,50 @@ static errr rd_dungeon(void)
 /*
  * Actually read the savefile
  */
+/* Read only the extension introduced in TOband2 save version 0.10.0.1. */
+static errr rd_party(void)
+{
+    byte version;
+    int m, i, j;
+    rd_byte(&version);
+    if (version != PARTY_SAVE_VERSION) return 1;
+    rd_byte(&party_count);
+    rd_byte(&party_active);
+    rd_byte(&party_rewards);
+    if (!party_count || party_count > MAX_PARTY_MEMBERS || party_active >= party_count || (party_rewards & ~3)) return 1;
+    for (m = 0; m < party_count; ++m)
+    {
+        party_member *member = &party_members[m];
+        rd_string(member->name, sizeof(member->name));
+        for (j = 0; j < 4; ++j) rd_string(member->player.history[j], sizeof(member->player.history[j]));
+#define PARTY_FIELD(type, name, count) for (i = 0; i < (count); ++i) rd_##type(&((type *)&member->player.name)[i]);
+#include "party-fields.h"
+#undef PARTY_FIELD
+        for (j = 0; j < MAX_CLASS; ++j)
+        {
+            rd_s32b(&member->player.cexp_info[j].max_max_cexp);
+            rd_s32b(&member->player.cexp_info[j].max_cexp);
+            rd_s32b(&member->player.cexp_info[j].cexp);
+            rd_u32b(&member->player.cexp_info[j].cexp_frac);
+            rd_s32b(&member->player.cexp_info[j].clev);
+            rd_s32b(&member->player.cexp_info[j].max_clev);
+            rd_s32b(&member->player.cexp_info[j].max_max_clev);
+            if (member->player.cexp_info[j].clev < 0 || member->player.cexp_info[j].clev > PY_MAX_LEVEL) return 1;
+        }
+        rd_s16b(&member->weapon_weight);
+        rd_s16b(&member->weapon_melee);
+        for (i = 0; i < INVEN_TOTAL - INVEN_RARM; ++i)
+        {
+            rd_item(&member->equipment[i]);
+            if (member->equipment[i].k_idx && member->equipment[i].number != 1) return 1;
+        }
+        if (member->player.prace >= max_p_idx || member->player.pclass >= max_c_idx ||
+            member->player.psex >= MAX_SEXES || member->player.pelem < 0 || member->player.pelem >= ELEM_NUM ||
+            member->player.lev < 1 || member->player.lev > PY_MAX_LEVEL) return 1;
+    }
+    return 0;
+}
+
 static errr rd_savefile_new_aux(void)
 {
 	int i, j;
@@ -2347,6 +2392,8 @@ static errr rd_savefile_new_aux(void)
 	/* Clear the checksums */
 	v_check = 0L;
 	x_check = 0L;
+
+	party_reset();
 
 	/* Read the version number of the savefile */
 	rd_byte(&t_ver_extra);
@@ -2966,6 +3013,12 @@ static errr rd_savefile_new_aux(void)
 			max_dlv[DUNGEON_RUINS] = d_info[DUNGEON_RUINS].mindepth;
 		}
 	}
+
+    if (!t_older_than(0, 10, 0, 1) && rd_party())
+    {
+        note("仲間データを読み込めません。");
+        return 35;
+    }
 
 #ifdef VERIFY_CHECKSUMS
 

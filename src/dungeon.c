@@ -11,6 +11,7 @@
  */
 
 #include "angband.h"
+#include "party.h"
 
 #define TY_CURSE_CHANCE 200
 #define CHAINSWORD_NOISE 100
@@ -4237,6 +4238,7 @@ static void process_command(void)
 		case 'U':
 		{
 			if (!p_ptr->wild_mode) do_cmd_racial_power();
+			else if (!astral_mode && party_count > 1) do_cmd_party();
 			break;
 		}
 
@@ -4756,6 +4758,7 @@ static void process_player(void)
 	/* Repeat until out of energy */
 	while (p_ptr->energy_need <= 0)
 	{
+		party_check_recruitment();
 		p_ptr->window |= PW_PLAYER;
 		now_damaged = FALSE;
 
@@ -4865,6 +4868,8 @@ static void process_player(void)
 		/* Hack -- Pack Overflow */
 		pack_overflow();
 
+
+		party_check_recruitment();
 
 		/*** Clean up ***/
 
