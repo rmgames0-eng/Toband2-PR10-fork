@@ -6,11 +6,13 @@
 static term test_term;
 static const char *keys;
 static int key_index;
-static const char party_label[]="\x8e\xe5\x90\x6c\x8c\xf6\x8c\xf0\x91\xe3";
+static const char party_label[]="\x8c\xf0\x91\xe3";
 static int power_step;
 static bool auto_power;
 static bool auto_recruit;
 static int auto_count = -1;
+static bool home_test, home_started;
+static int home_target;
 
 static errr test_xtra(int n, int v)
 {
@@ -24,12 +26,20 @@ static errr test_xtra(int n, int v)
                 for(x=0;x<80;++x) row[x]=Term->scr->c[y][x];
                 row[80]=0;
                 if(strstr(row,party_label)) {
-                    power_step=1; Term_keypress(row[1]); return 0;
+                    assert(row[1]=='a'); power_step=1; Term_keypress(row[1]); return 0;
                 }
             }
             fprintf(stderr,"Party entry missing from U menu\n"); exit(4);
         }
-        if (auto_recruit && !party_creating) { Term_keypress(' '); return 0; }
+        if (auto_recruit && !party_creating) {
+            if (home_test && party_count >= home_target) {
+                Term_keypress(ESCAPE); return 0;
+            }
+            if (home_test && !home_started) {
+                home_started=TRUE; Term_keypress('a'); return 0;
+            }
+            Term_keypress(' '); return 0;
+        }
         if (auto_recruit && auto_count != party_count) {
             auto_count=party_count;
             keys="Q=\r\r\r\rQ\r\033Recruit\rQ\r";
@@ -138,10 +148,21 @@ int main(int argc,char **argv)
         quest[QUEST_ARMORICA].status=QUEST_STATUS_FINISHED;
         quest[QUEST_BARMAMUTHA_L].status=QUEST_STATUS_COMPLETED;
         quest[QUEST_BARMAMUTHA_C].status=QUEST_STATUS_FINISHED;
-        auto_recruit=TRUE;
-        party_check_recruitment();
-        assert(party_count==3 && party_rewards==3);
-        party_check_recruitment();
+        assert(party_can_recruit() && party_count==0 && party_rewards==0);
+        /* Visiting and leaving home must not force character creation. */
+        p_ptr->town_num=1; dun_level=0;
+        town[1].ethnic=NO_ETHNICITY;
+        cave[py][px].feat=FEAT_SHOP_HEAD+STORE_HOME;
+        keys="\033"; key_index=0;
+        do_cmd_store();
+        assert(party_count==0 && party_rewards==0 && party_can_recruit());
+        auto_recruit=TRUE; home_test=TRUE; home_started=FALSE; home_target=2;
+        do_cmd_store();
+        assert(party_count==2 && party_rewards==1 && party_can_recruit());
+        home_started=FALSE; home_target=3;
+        do_cmd_store();
+        assert(party_count==3 && party_rewards==3 && !party_can_recruit());
+        do_cmd_party_recruit();
         assert(party_count==3);
         puts("Legacy full save migration and both quest rewards passed");
         return 0;

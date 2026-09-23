@@ -192,16 +192,17 @@ static void recruitment(void) {
     reset(); party_count=1; recruits=0;
     quests[QUEST_ARMORICA].status=QUEST_STATUS_FAILED;
     quests[QUEST_BARMAMUTHA_L].status=QUEST_STATUS_TAKEN;
-    party_check_recruitment(); assert(recruits==0);
+    do_cmd_party_recruit(); assert(recruits==0);
     quests[QUEST_ARMORICA].status=QUEST_STATUS_COMPLETED;
-    party_check_recruitment(); assert(recruits==1 && party_count==2 && party_rewards==1);
+    assert(party_can_recruit() && recruits==0);
+    do_cmd_party_recruit(); assert(recruits==1 && party_count==2 && party_rewards==1);
     quests[QUEST_BARMAMUTHA_C].status=QUEST_STATUS_FINISHED;
-    party_check_recruitment(); assert(recruits==2 && party_count==3 && party_rewards==3);
+    do_cmd_party_recruit(); assert(recruits==2 && party_count==3 && party_rewards==3);
     quests[QUEST_BARMAMUTHA_L].status=QUEST_STATUS_REWARDED;
-    party_check_recruitment(); assert(recruits==2);
+    do_cmd_party_recruit(); assert(recruits==2);
     reset(); party_count=1; recruits=0; astral_mode=TRUE;
     quests[QUEST_ARMORICA].status=QUEST_STATUS_FINISHED;
-    party_check_recruitment(); assert(recruits==0);
+    do_cmd_party_recruit(); assert(recruits==0);
 }
 static void serialization(void) {
     static party_member expected[MAX_PARTY_MEMBERS];

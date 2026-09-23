@@ -4758,7 +4758,6 @@ static void process_player(void)
 	/* Repeat until out of energy */
 	while (p_ptr->energy_need <= 0)
 	{
-		party_check_recruitment();
 		p_ptr->window |= PW_PLAYER;
 		now_damaged = FALSE;
 
@@ -4868,8 +4867,6 @@ static void process_player(void)
 		/* Hack -- Pack Overflow */
 		pack_overflow();
 
-
-		party_check_recruitment();
 
 		/*** Clean up ***/
 

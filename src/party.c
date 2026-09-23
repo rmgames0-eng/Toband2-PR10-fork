@@ -205,19 +205,34 @@ static bool party_quest_complete(int quest_id)
     return status == QUEST_STATUS_COMPLETED || status == QUEST_STATUS_REWARDED || status == QUEST_STATUS_FINISHED;
 }
 
-void party_check_recruitment(void)
+/* Return an earned, unclaimed slot without changing the roster. */
+static int party_recruit_reward(void)
 {
     int reward;
-    if (astral_mode || party_creating || p_ptr->is_dead || p_ptr->chp < 0) return;
-    party_capture();
+    if (astral_mode || party_creating || p_ptr->is_dead || p_ptr->chp < 0 ||
+        party_count >= MAX_PARTY_MEMBERS) return -1;
     for (reward = 0; reward < 2; ++reward)
     {
         bool earned = reward == 0 ? party_quest_complete(QUEST_ARMORICA) :
             (party_quest_complete(QUEST_BARMAMUTHA_L) || party_quest_complete(QUEST_BARMAMUTHA_C));
-        if (!earned || (party_rewards & (1 << reward)) || party_count >= MAX_PARTY_MEMBERS) continue;
-        msg_print("あなたの名声を聞きつけ、ヴァレリア島の戦士が仲間になりたがっています。");
-        msg_print(NULL);
-        party_birth_member();
-        party_rewards |= (1 << reward);
+        if (earned && !(party_rewards & (1 << reward))) return reward;
     }
+    return -1;
+}
+
+bool party_can_recruit(void)
+{
+    return party_recruit_reward() >= 0;
+}
+
+/* Called only by the explicit home recruitment command. One member per choice. */
+void do_cmd_party_recruit(void)
+{
+    int reward = party_recruit_reward();
+    if (reward < 0) return;
+    party_capture();
+    msg_print("あなたの名声を聞きつけ、ヴァレリア島の戦士が仲間になりたがっています。");
+    msg_print(NULL);
+    party_birth_member();
+    party_rewards |= (1 << reward);
 }

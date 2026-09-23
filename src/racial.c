@@ -3264,6 +3264,16 @@ void do_cmd_racial_power(void)
 
 	num = 0;
 
+    if (!astral_mode && party_count > 1)
+    {
+        strcpy(power_desc[num].name, "¸òÂå");
+        power_desc[num].level = 1;
+        power_desc[num].cost = 0;
+        power_desc[num].stat = A_WIS;
+        power_desc[num].fail = 0;
+        power_desc[num++].number = PARTY_POWER;
+    }
+
 
 	if (!(cp_ptr->c_flags & (PCF_REINCARNATE | PCF_DEMON | PCF_UNDEAD)))
 	{
@@ -4594,15 +4604,6 @@ void do_cmd_racial_power(void)
 		}
 	}
 
-    if (!astral_mode && party_count > 1)
-    {
-        strcpy(power_desc[num].name, "¼ç¿Í¸ø¸òÂå");
-        power_desc[num].level = 1;
-        power_desc[num].cost = 0;
-        power_desc[num].stat = A_WIS;
-        power_desc[num].fail = 0;
-        power_desc[num++].number = PARTY_POWER;
-    }
 
 	/* Nothing chosen yet */
 	flag = FALSE;

@@ -11,6 +11,7 @@
  */
 
 #include "angband.h"
+#include "party.h"
 
 
 #ifdef JP
@@ -5682,6 +5683,12 @@ static void store_process_command(void)
 				change_player_class();
 				display_store();
 			}
+            else if ((cur_store_num == STORE_HOME) && (old_town_num != NO_TOWN) &&
+                     (command_cmd == 'a') && party_can_recruit())
+            {
+                do_cmd_party_recruit();
+                display_store();
+            }
 			else if ((cur_store_num == STORE_HOME) && (command_cmd == 'G') && (old_town_num != NO_TOWN))
 			{
 				take_pet_home();
@@ -5956,6 +5963,16 @@ void do_cmd_store(void)
 
 #endif
 
+            if (old_town_num != NO_TOWN && party_can_recruit())
+            {
+#ifdef JP
+                if (st_ptr->stock_num > 12) prt(" -/SPACE) 前/次ページ", 22, 0);
+                prt(" a) 仲間を加える       ", 23, 0);
+#else
+                if (st_ptr->stock_num > 12) prt(" -/SPACE) Prev/Next page", 22, 0);
+                prt(" a) Recruit a companion", 23, 0);
+#endif
+            }
 		}
 
 		/* Museum commands */
