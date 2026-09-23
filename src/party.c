@@ -117,7 +117,8 @@ static s32b party_fraction(s32b current, s32b maximum, s32b target, bool hp)
 bool party_switch(int member)
 {
     player_type before;
-    int old_inven, old_equip;
+    int old_inven, old_equip, c;
+    u32b old_realms[MAX_CLASS];
     bool old_monk = monk_armour_aux, old_notify = monk_notify_aux;
     bool legal;
     if (astral_mode || party_creating || member < 0 || member >= party_count || member == party_active)
@@ -126,10 +127,12 @@ bool party_switch(int member)
         return FALSE;
     party_capture();
     before = *p_ptr;
+    for (c = 0; c < max_c_idx; ++c) old_realms[c] = class_info[c].realm_choices;
     old_inven = inven_cnt; old_equip = equip_cnt;
     party_restore(&party_members[member]);
     party_clear_effects(p_ptr);
     party_clear_weapon(&inventory[INVEN_RARM], &mw_old_weight, &mw_diff_to_melee);
+    init_realm_table();
     party_recalculate();
     legal = p_ptr->wild_mode || player_can_enter(cave[py][px].feat);
     if (!p_ptr->wild_mode && (cave[py][px].feat == FEAT_AIR || cave[py][px].feat == FEAT_DARK_PIT))
@@ -143,12 +146,15 @@ bool party_switch(int member)
     {
         party_restore(&party_members[party_active]);
         *p_ptr = before;
+        for (c = 0; c < max_c_idx; ++c) class_info[c].realm_choices = old_realms[c];
         party_rebind();
         inven_cnt = old_inven; equip_cnt = old_equip;
         monk_armour_aux = old_monk; monk_notify_aux = old_notify;
         msg_print("この場所ではその仲間に交代できません。");
         return FALSE;
     }
+    /* End effects on other creatures only after the switch is accepted. */
+    if (before.singing == MUSIC_SILENT) song_of_silence(0);
     /* Commit removal on the outgoing equipment only after validation. */
     party_clear_effects(&party_members[party_active].player);
     party_clear_weapon(&party_members[party_active].equipment[0],
@@ -238,4 +244,21 @@ void do_cmd_party_recruit(void)
     msg_print(NULL);
     party_birth_member();
     party_rewards |= (1 << reward);
+}
+
+/* Match the normal end-of-game identification without changing protagonists. */
+void party_identify_reserve_equipment(void)
+{
+    int m, i;
+    for (m = 0; m < party_count; ++m)
+    {
+        if (m == party_active) continue;
+        for (i = 0; i < INVEN_TOTAL - INVEN_RARM; ++i)
+        {
+            object_type *object = &party_members[m].equipment[i];
+            if (!object->k_idx) continue;
+            object_aware(object);
+            object_known(object);
+        }
+    }
 }

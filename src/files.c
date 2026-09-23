@@ -6269,6 +6269,8 @@ static void show_info(void)
 		object_known(o_ptr);
 	}
 
+	party_identify_reserve_equipment();
+
 	for (i = 1; i < max_towns; i++)
 	{
 		st_ptr = &town[i].store[STORE_HOME];

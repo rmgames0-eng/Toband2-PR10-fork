@@ -74,6 +74,10 @@ int stun_level(int value) { return value >= 100 ? 4 : 0; }
 void msg_print(cptr s) { if(s) ++messages; }
 void msg_format(cptr s, ...) { ++messages; }
 void repeat_clear(void) {}
+void init_realm_table(void) { cp_ptr->realm_choices=p_ptr->realm_medium; }
+void song_of_silence(int dam) { monsters[1].silent_song=FALSE; }
+void object_aware(object_type *object) {}
+void object_known(object_type *object) { object->ident |= IDENT_KNOWN; }
 void screen_save(void) {}
 void screen_load(void) {}
 errr Term_clear(void) { return 0; }
@@ -200,6 +204,18 @@ static void switching(void) {
     assert(party_members[0].equipment[0].timeout==77);
     assert(party_switch(0)); assert(items[INVEN_RARM].timeout==77);
     assert(party_members[1].equipment[0].timeout==3);
+    reset(); classes[0].realm_choices=123; classes[1].realm_choices=456;
+    p_ptr->wraith_form=0; p_ptr->singing=MUSIC_SILENT; monsters[1].silent_song=TRUE;
+    party_members[1].player.realm_medium=CH_FIRE;
+    grid[0].feat=FEAT_WALL_EXTRA; assert(!party_switch(1));
+    assert(classes[0].realm_choices==123 && classes[1].realm_choices==456);
+    assert(p_ptr->singing==MUSIC_SILENT && monsters[1].silent_song);
+    grid[0].feat=FEAT_FLOOR; assert(party_switch(1));
+    assert(classes[1].realm_choices==CH_FIRE && !monsters[1].silent_song);
+    party_members[0].equipment[0].ident=0; items[INVEN_RARM].ident=0;
+    party_identify_reserve_equipment();
+    assert(party_members[0].equipment[0].ident & IDENT_KNOWN);
+    assert(!items[INVEN_RARM].ident);
     reset(); do_cmd_party(); assert(party_active==0 && !energy_use);
 }
 static void recruitment(void) {

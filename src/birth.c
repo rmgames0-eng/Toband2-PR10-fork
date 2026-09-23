@@ -2392,10 +2392,12 @@ void party_birth_member(void)
     int old_inven = inven_cnt, old_equip = equip_cnt, old_energy = energy_use;
     s16b old_weight = mw_old_weight, old_melee = mw_diff_to_melee;
     int i, slot;
+    u32b old_realms[MAX_CLASS];
     party_member *member;
 
     if (party_count >= MAX_PARTY_MEMBERS) return;
     strcpy(old_name, player_name);
+    for (i = 0; i < max_c_idx; ++i) old_realms[i] = class_info[i].realm_choices;
     C_MAKE(recruit, 1, player_type);
     C_MAKE(new_inventory, INVEN_TOTAL, object_type);
     screen_save();
@@ -2465,6 +2467,7 @@ void party_birth_member(void)
     mw_old_weight = old_weight; mw_diff_to_melee = old_melee;
     inven_cnt = old_inven; equip_cnt = old_equip;
     energy_use = old_energy;
+    for (i = 0; i < max_c_idx; ++i) class_info[i].realm_choices = old_realms[i];
     party_rebind();
     character_generated = old_generated;
     character_xtra = old_xtra;

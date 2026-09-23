@@ -22,4 +22,5 @@ extern bool party_switch(int member);
 extern void do_cmd_party(void);
 extern void party_birth_member(void);
 extern void party_rebind(void);
+extern void party_identify_reserve_equipment(void);
 #endif

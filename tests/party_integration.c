@@ -249,6 +249,49 @@ static void mechanics_regressions(void)
 }
 
 
+static void side_effect_regressions(void)
+{
+    static party_member saved[MAX_PARTY_MEMBERS];
+    player_type original=*p_ptr;
+    object_type items[INVEN_TOTAL], unidentified;
+    monster_type monster=m_list[1];
+    s16b old_mmax=m_max,old_energy=energy_use;
+    byte active=party_active;
+    int target=1-party_active,c;
+    u32b realms[MAX_CLASS];
+    char name[32];
+    memcpy(saved,party_members,sizeof(saved)); memcpy(items,inventory,sizeof(items));
+    strcpy(name,player_name);
+    for(c=0;c<max_c_idx;++c) realms[c]=class_info[c].realm_choices;
+    keys="                                                                "; key_index=0; msg_print(NULL);
+    p_ptr->pclass=CLASS_MEDIUM; p_ptr->realm_medium=CH_AQUA;
+    p_ptr->pelem=p_ptr->celem=ELEM_AQUA;
+    party_rebind(); init_realm_table();
+    party_members[target].player.pclass=CLASS_MEDIUM;
+    party_members[target].player.realm_medium=CH_FIRE|CH_HOLY;
+    party_members[target].player.pelem=party_members[target].player.celem=ELEM_FIRE;
+    assert(party_switch(target));
+    assert(cp_ptr->realm_choices==(CH_FIRE|CH_HOLY));
+    assert(party_switch(active));
+    assert(cp_ptr->realm_choices==CH_AQUA);
+    m_max=2; m_list[1].r_idx=1; m_list[1].silent_song=TRUE;
+    m_list[1].ml=FALSE;
+    p_ptr->singing=MUSIC_SILENT;
+    assert(party_switch(target));
+    assert(!p_ptr->singing && !m_list[1].silent_song);
+    object_prep(&unidentified,lookup_kind(TV_SOFT_ARMOR,SV_ROBE));
+    unidentified.number=1; unidentified.ident=0;
+    party_members[active].equipment[INVEN_BODY-INVEN_RARM]=unidentified;
+    party_identify_reserve_equipment();
+    assert(party_members[active].equipment[INVEN_BODY-INVEN_RARM].ident & IDENT_KNOWN);
+    assert(party_active==target);
+    *p_ptr=original; memcpy(inventory,items,sizeof(items));
+    memcpy(party_members,saved,sizeof(saved)); party_active=active;
+    strcpy(player_name,name); m_list[1]=monster; m_max=old_mmax; energy_use=old_energy;
+    for(c=0;c<max_c_idx;++c) class_info[c].realm_choices=realms[c];
+    party_rebind();
+}
+
 static void dump_regressions(void)
 {
     static party_member members[MAX_PARTY_MEMBERS], initial[MAX_PARTY_MEMBERS];
@@ -315,6 +358,7 @@ int main(int argc,char **argv)
     object_type original_pack[INVEN_TOTAL];
     party_member first_recruit;
     s32b original_turn;
+    u32b original_realms[MAX_CLASS];
     int i;
     assert(argc==2 || argc==3);
     quit_aux=fail_quit;
@@ -352,7 +396,9 @@ int main(int argc,char **argv)
     /* Q and '=' must be ignored, then choose sex/race/class/element, stats,
      * finish background editing, enter a name and accept recruitment. */
     keys="Q=\r\r\r\rQ\r\033Recruit\rQ\r"; key_index=0;
+    for(i=0;i<max_c_idx;++i) original_realms[i]=class_info[i].realm_choices;
     party_birth_member();
+    for(i=0;i<max_c_idx;++i) assert(original_realms[i]==class_info[i].realm_choices);
     assert(party_count==2 && party_active==0 && !party_creating);
     assert(character_icky==0);
     original.redraw=p_ptr->redraw; original.window=p_ptr->window;
@@ -443,6 +489,7 @@ int main(int argc,char **argv)
     }
     display_regressions();
     mechanics_regressions();
+    side_effect_regressions();
     dump_regressions();
     character_generated=FALSE;
     p_ptr->is_dead=DEATH_DEAD;
