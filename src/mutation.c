@@ -1241,13 +1241,13 @@ bool lose_gift(int choose_gift)
 }
 
 
-void dump_mutations(FILE *OutFile)
+void dump_player_mutations(FILE *OutFile, const player_type *player)
 {
 	if (!OutFile) return;
 
-	if (p_ptr->mutation)
+	if (player->mutation)
 	{
-		if (p_ptr->mutation & MUT_ELEM_UNSTABLE)
+		if (player->mutation & MUT_ELEM_UNSTABLE)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたの固有エレメントは絶えず変化している。\n");
@@ -1256,7 +1256,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->mutation & MUT_ELEM_MULTI)
+		if (player->mutation & MUT_ELEM_MULTI)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたのエレメントは絶えず変化している。\n");
@@ -1265,7 +1265,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->mutation & MUT_SPEED_FLUX)
+		if (player->mutation & MUT_SPEED_FLUX)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたはランダムに早く動いたり遅く動いたりする。\n");
@@ -1274,7 +1274,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->mutation & MUT_BANISH_ALL)
+		if (player->mutation & MUT_BANISH_ALL)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたは時々近くのモンスターを消滅させる。\n");
@@ -1283,7 +1283,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->mutation & MUT_EAT_LIGHT)
+		if (player->mutation & MUT_EAT_LIGHT)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたは時々周囲の光を吸収して栄養にする。\n");
@@ -1292,7 +1292,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->mutation & MUT_NORMALITY)
+		if (player->mutation & MUT_NORMALITY)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたは変異していたが、回復してきている。\n");
@@ -1301,7 +1301,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->mutation & MUT_WASTING)
+		if (player->mutation & MUT_WASTING)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたは衰弱する恐ろしい病気にかかっている。\n");
@@ -1310,7 +1310,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->mutation & MUT_ALTER_REALITY)
+		if (player->mutation & MUT_ALTER_REALITY)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたの周りの現実は歪んでいる。\n");
@@ -1319,7 +1319,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->mutation & MUT_SP_TO_HP)
+		if (player->mutation & MUT_SP_TO_HP)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたは時々血が筋肉にどっと流れる。\n");
@@ -1328,7 +1328,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->mutation & MUT_HP_TO_SP)
+		if (player->mutation & MUT_HP_TO_SP)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたは時々頭に血がどっと流れる。\n");
@@ -1337,7 +1337,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->mutation & MUT_ELEC_BODY)
+		if (player->mutation & MUT_ELEC_BODY)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたの体はスパークにつつまれている。\n");
@@ -1346,7 +1346,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->mutation & MUT_FIRE_BODY)
+		if (player->mutation & MUT_FIRE_BODY)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたの体は炎につつまれている。\n");
@@ -1355,7 +1355,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->mutation & MUT_COLD_BODY)
+		if (player->mutation & MUT_COLD_BODY)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたの体は氷につつまれている。\n");
@@ -1364,7 +1364,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->mutation & MUT_XTRA_FAT)
+		if (player->mutation & MUT_XTRA_FAT)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたは極端に太っている。(耐久+2,スピード-2)\n");
@@ -1373,7 +1373,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->mutation & MUT_FLESH_ROT)
+		if (player->mutation & MUT_FLESH_ROT)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたの肉体は腐敗している。(耐久-2,魅力-1)\n");
@@ -1382,7 +1382,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->mutation & MUT_THICK_SKIN)
+		if (player->mutation & MUT_THICK_SKIN)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたの肌は分厚い皮膚になっている。(魅力-2, AC+10)\n");
@@ -1391,7 +1391,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->mutation & MUT_SCALES)
+		if (player->mutation & MUT_SCALES)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたの肌は鱗になっている。(魅力-1, AC+10)\n");
@@ -1400,7 +1400,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->mutation & MUT_FUR)
+		if (player->mutation & MUT_FUR)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたの肌は毛皮に覆われている。(AC+5)\n");
@@ -1409,7 +1409,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->mutation & MUT_WINGS)
+		if (player->mutation & MUT_WINGS)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたは羽を持っている。\n");
@@ -1418,7 +1418,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->mutation & MUT_VULN_ELEM)
+		if (player->mutation & MUT_VULN_ELEM)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたは元素の攻撃に弱い。\n");
@@ -1429,9 +1429,9 @@ void dump_mutations(FILE *OutFile)
 		}
 	}
 
-	if (p_ptr->grace)
+	if (player->grace)
 	{
-		if (p_ptr->grace & GRACE_GOOD_LUCK)
+		if (player->grace & GRACE_GOOD_LUCK)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたは白いオーラにつつまれている。\n");
@@ -1440,7 +1440,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->grace & GRACE_ATT_ANIMAL)
+		if (player->grace & GRACE_ATT_ANIMAL)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたは動物を引きつける。\n");
@@ -1449,7 +1449,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->grace & GRACE_ATT_SERVANT)
+		if (player->grace & GRACE_ATT_SERVANT)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたは下僕を引きつける。\n");
@@ -1458,7 +1458,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->grace & GRACE_ATT_DRAGON)
+		if (player->grace & GRACE_ATT_DRAGON)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたはドラゴンを引きつける。\n");
@@ -1467,7 +1467,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->grace & GRACE_REGEN)
+		if (player->grace & GRACE_REGEN)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたは急速に回復する。\n");
@@ -1476,7 +1476,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->grace & (GRACE_HIGH_MELEE | GRACE_HIGH_MELEE2))
+		if (player->grace & (GRACE_HIGH_MELEE | GRACE_HIGH_MELEE2))
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたは攻撃を命中させやすい。\n");
@@ -1485,7 +1485,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->grace & (GRACE_HIGH_AC | GRACE_HIGH_AC2))
+		if (player->grace & (GRACE_HIGH_AC | GRACE_HIGH_AC2))
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたは攻撃をかわしやすい。\n");
@@ -1494,7 +1494,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->grace & (GRACE_HIGH_MAGIC | GRACE_HIGH_MAGIC2))
+		if (player->grace & (GRACE_HIGH_MAGIC | GRACE_HIGH_MAGIC2))
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたは魔法を成功させやすい。\n");
@@ -1504,7 +1504,7 @@ void dump_mutations(FILE *OutFile)
 
 		}
 
-		if (p_ptr->grace & CURSE_BAD_LUCK)
+		if (player->grace & CURSE_BAD_LUCK)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたは黒いオーラにつつまれている。\n");
@@ -1513,7 +1513,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->grace & CURSE_ATT_ANIMAL)
+		if (player->grace & CURSE_ATT_ANIMAL)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたは動物を引きつける。\n");
@@ -1522,7 +1522,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->grace & CURSE_ATT_DEMON)
+		if (player->grace & CURSE_ATT_DEMON)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたは悪魔を引きつける。\n");
@@ -1531,7 +1531,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->grace & CURSE_ATT_DRAGON)
+		if (player->grace & CURSE_ATT_DRAGON)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたはドラゴンを引きつける。\n");
@@ -1540,7 +1540,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->grace & CURSE_SLOW_REGEN)
+		if (player->grace & CURSE_SLOW_REGEN)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたの回復力は非常に遅い。\n");
@@ -1549,7 +1549,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->grace & (CURSE_LOW_MELEE | CURSE_LOW_MELEE2))
+		if (player->grace & (CURSE_LOW_MELEE | CURSE_LOW_MELEE2))
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたは攻撃を外しやすい。\n");
@@ -1558,7 +1558,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->grace & (CURSE_LOW_AC | CURSE_LOW_AC2))
+		if (player->grace & (CURSE_LOW_AC | CURSE_LOW_AC2))
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたは攻撃を受けやすい。\n");
@@ -1567,7 +1567,7 @@ void dump_mutations(FILE *OutFile)
 #endif
 
 		}
-		if (p_ptr->grace & (CURSE_LOW_MAGIC | CURSE_LOW_MAGIC2))
+		if (player->grace & (CURSE_LOW_MAGIC | CURSE_LOW_MAGIC2))
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたは魔法を失敗しやすい。\n");
@@ -1578,9 +1578,9 @@ void dump_mutations(FILE *OutFile)
 		}
 	}
 
-	if (p_ptr->gift)
+	if (player->gift)
 	{
-		if (p_ptr->gift & GIFT_TAROT)
+		if (player->gift & GIFT_TAROT)
 		{
 #ifdef JP
 			fprintf(OutFile, " あなたはタロットカードの力を感じる。\n");
@@ -1591,6 +1591,12 @@ void dump_mutations(FILE *OutFile)
 		}
 	}
 }
+
+void dump_mutations(FILE *OutFile)
+{
+    dump_player_mutations(OutFile, p_ptr);
+}
+
 
 
 /*

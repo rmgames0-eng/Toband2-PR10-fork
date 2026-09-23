@@ -248,6 +248,66 @@ static void mechanics_regressions(void)
     party_members[target]=saved;
 }
 
+
+static void dump_regressions(void)
+{
+    static party_member members[MAX_PARTY_MEMBERS], initial[MAX_PARTY_MEMBERS];
+    player_type player;
+    object_type items[INVEN_TOTAL];
+    int mode,i;
+    byte count=party_count,active=party_active,rewards=party_rewards;
+    s32b saved_turn=turn;
+    u32b saved_random=Rand_value;
+    s16b energy=energy_use;
+    char name[32];
+    memcpy(initial,party_members,sizeof(initial));
+    for(mode=0;mode<3;++mode) {
+        FILE *out;
+        char *text;
+        long size;
+        if(mode==1) party_count=0; /* A legacy one-person save must stay unmodified. */
+        if(mode==2) {
+            party_count=MAX_PARTY_MEMBERS;
+            for(i=count;i<MAX_PARTY_MEMBERS;++i) {
+                party_members[i]=initial[1];
+                sprintf(party_members[i].name,"Reserve%02d",i+1);
+            }
+            party_members[1].player.realm_medium=CH_FIRE|CH_WIND;
+            party_members[1].player.essence_box[0]=9876;
+        }
+        player=*p_ptr; memcpy(items,inventory,sizeof(items));
+        memcpy(members,party_members,sizeof(members)); strcpy(name,player_name);
+        out=tmpfile(); assert(out);
+        assert(!make_character_dump(out));
+        fflush(out); size=ftell(out); rewind(out);
+        text=malloc(size+1); assert(text);
+        assert(fread(text,1,size,out)==size); text[size]=0; fclose(out);
+        assert(strstr(text,name));
+        assert(strstr(text,"\133\222\207\212\324\210\352\227\227\135"));
+        assert(!strstr(strstr(text,"\133\222\207\212\324\210\352\227\227\135")+1,"\133\222\207\212\324\210\352\227\227\135"));
+        assert(strstr(text,"\133\213\244\227\114\217\356\225\361\135"));
+        assert(!strstr(strstr(text,"\133\213\244\227\114\217\356\225\361\135")+1,"\133\213\244\227\114\217\356\225\361\135"));
+        assert(strstr(text,"\133\203\114\203\203\203\211\203\116\203\136\202\314\216\235\202\277\225\250\135"));
+        assert(!strstr(strstr(text,"\133\203\114\203\203\203\211\203\116\203\136\202\314\216\235\202\277\225\250\135")+1,"\133\203\114\203\203\203\211\203\116\203\136\202\314\216\235\202\277\225\250\135"));
+        if(mode!=1) {
+            const char *reserve=strstr(text,"\133\220\154\225\250\040\062\072");
+            const char *end=strstr(reserve,"\133\213\244\227\114\217\356\225\361\135");
+            const char *hp=strstr(reserve,"HP");
+            assert(reserve && end && (!hp || hp>=end));
+        }
+        if(mode!=1) assert(strstr(text,party_members[1].name));
+        if(mode==2) assert(strstr(text,"Reserve16"));
+        assert(!memcmp(&player,p_ptr,sizeof(player)));
+        assert(!memcmp(items,inventory,sizeof(items)));
+        assert(!memcmp(members,party_members,sizeof(members)));
+        assert(Rand_value==saved_random && turn==saved_turn && energy_use==energy && party_active==active && party_rewards==rewards);
+        assert(party_count==(mode==0 ? count : mode==1 ? 0 : MAX_PARTY_MEMBERS));
+        assert(!strcmp(name,player_name));
+        free(text);
+    }
+    memcpy(party_members,initial,sizeof(initial)); party_count=count;
+}
+
 int main(int argc,char **argv)
 {
     char path[1024];
@@ -383,10 +443,12 @@ int main(int argc,char **argv)
     }
     display_regressions();
     mechanics_regressions();
+    dump_regressions();
     character_generated=FALSE;
     p_ptr->is_dead=DEATH_DEAD;
     assert(save_player()); party_reset(); assert(load_player());
     assert(party_count==2 && party_rewards==3);
-    puts("Real-data birth, switch and complete save/load passed");
+    dump_regressions();
+    puts("Real-data birth, switch, party dumps and complete save/load passed");
     return 0;
 }

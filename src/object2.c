@@ -8404,6 +8404,14 @@ static bool item_tester_hook_rocket(object_type *o_ptr)
 }
 
 
+void dump_player_essences(FILE *fff, const player_type *player)
+{
+    int i;
+    for (i = 0; i < 108 && essence_info[i].essence_name; ++i)
+        if (player->essence_box[i] && essence_info[i].essence_name[0])
+            fprintf(fff, "  %s: %ld\n", essence_info[i].essence_name, (long)player->essence_box[i]);
+}
+
 static void display_essence(void)
 {
 	int i, num = 0;

@@ -1502,6 +1502,8 @@ extern bool do_curse(int choose, int gain_or_lose);
 extern bool gain_gift(int choose_gift);
 extern bool lose_gift(int choose_gift);
 extern void dump_mutations(FILE *OutFile);
+extern void dump_player_essences(FILE *fff, const player_type *player);
+extern void dump_player_mutations(FILE *OutFile, const player_type *player);
 extern void do_cmd_knowledge_mutations(void);
 extern int calc_mutant_regenerate_mod(void);
 

@@ -11,6 +11,7 @@
  */
 
 #include "angband.h"
+#include "party.h"
 
 
 /*
@@ -4391,30 +4392,6 @@ static void dump_aux_equipment_inventory(FILE *fff)
 	cptr paren = ")";
 	char o_name[MAX_NLEN];
 
-	/* Dump the equipment */
-	if (equip_cnt)
-	{
-#ifdef JP
-		fprintf(fff, "  [キャラクタの装備]\n\n");
-#else
-		fprintf(fff, "  [Character Equipment]\n\n");
-#endif
-
-		for (i = INVEN_RARM; i < INVEN_TOTAL; i++)
-		{
-			object_desc(o_name, &inventory[i], 0);
-			if ((i == INVEN_LARM) && p_ptr->ryoute)
-#ifdef JP
-				strcpy(o_name, "(武器を両手持ち)");
-#else
-				strcpy(o_name, "(wielding with two-hands)");
-#endif
-			fprintf(fff, "%c%s %s\n",
-				index_to_label(i), paren, o_name);
-		}
-		fprintf(fff, "\n\n");
-	}
-
 	/* Dump the inventory */
 #ifdef JP
 	fprintf(fff, "  [キャラクタの持ち物]\n\n");
@@ -4521,6 +4498,89 @@ static void dump_aux_home_museum(FILE *fff)
 /*
  * Output the character dump to a file
  */
+
+/* Read stored personal data; never switch, recalculate, or capture a member. */
+static void dump_aux_party(FILE *fff, bool roster)
+{
+    int m, i, count = party_count ? party_count : 1;
+    static cptr stats[A_MAX] = {"腕力", "知能", "賢さ", "器用さ", "耐久力", "魅力"};
+    static cptr skills[5] = {"格闘", "二刀流", "騎乗", "投擲", "ペット維持"};
+    if (roster)
+    {
+        fprintf(fff, "  [仲間一覧]\n\n");
+        for (m = 0; m < count; ++m)
+        {
+            bool active = !party_count || m == party_active;
+            const player_type *p = active ? p_ptr : &party_members[m].player;
+            cptr name = active ? player_name : party_members[m].name;
+            fprintf(fff, "%d) %s%s  %s / %s  Lv%ld\n", m + 1,
+                active ? "[操作中] " : "[控え] ", name,
+                p_name + race_info[p->prace].name, c_name + class_info[p->pclass].name, (long)p->lev);
+        }
+        fprintf(fff, "\n控えの現在HP・MPは保持せず、交代時に操作中の人物の残存割合を引き継ぐ。\n\n");
+        fprintf(fff, "  [操作中の人物・現在の状況]\n\n");
+        return;
+    }
+    for (m = 0; m < count; ++m)
+    {
+        bool active = !party_count || m == party_active;
+        const player_type *p = active ? p_ptr : &party_members[m].player;
+        const object_type *equip = active ? &inventory[INVEN_RARM] : party_members[m].equipment;
+        cptr name = active ? player_name : party_members[m].name;
+        fprintf(fff, "\n  [人物 %d: %s / %s]\n\n", m + 1, name, active ? "操作中" : "控え");
+        fprintf(fff, "%s / %s / %s  エレメント: %s\n",
+            sex_info[p->psex].title, p_name + race_info[p->prace].name,
+            c_name + class_info[p->pclass].name, elem_names[p->pelem]);
+        fprintf(fff, "レベル: %ld / 最大%ld / 最高%ld\n経験値: %ld / 最大%ld / 最高%ld\n",
+            (long)p->lev,(long)p->max_plv,(long)p->max_max_plv,
+            (long)p->exp,(long)p->max_exp,(long)p->max_max_exp);
+        fprintf(fff, "基礎能力値（現在/最大、種族・職業・装備補正前）:\n");
+        for(i=0;i<A_MAX;++i) {
+            char cur[32], max[32];
+            cnv_stat(p->stat_cur[i],cur); cnv_stat(p->stat_max[i],max);
+            fprintf(fff, "  %s: %s / %s\n",stats[i],cur,max);
+        }
+        fprintf(fff, "本人のアラインメント（装備・仲間補正前）: 秩序/混沌 %d, 善/悪 %d\n",
+            p->align_self[ALI_LNC],p->align_self[ALI_GNE]);
+        fprintf(fff, "蘇生: %u, 実体化: %u, 転生: %u\n",
+            p->resurrection_cnt,p->materialize_cnt,p->reincarnate_cnt);
+        fprintf(fff, "\n生い立ち:\n");
+        for(i=0;i<4;++i) if(p->history[i][0]) fprintf(fff,"%s\n",p->history[i]);
+        fprintf(fff, "\n経験した職業（現在Lv/最大Lv/最高Lv、経験値/最大経験値）:\n");
+        for(i=0;i<max_c_idx;++i) {
+            const cexp_info_type *c=&p->cexp_info[i];
+            if(!c->max_max_clev && !c->clev) continue;
+            fprintf(fff,"  %s: %ld/%ld/%ld  %ld/%ld\n",c_name+class_info[i].name,
+                (long)c->clev,(long)c->max_clev,(long)c->max_max_clev,(long)c->cexp,(long)c->max_cexp);
+        }
+        fprintf(fff,"\n武器熟練度:\n");
+        for(i=0;i<MAX_WT;++i) if(p->weapon_exp[i])
+            fprintf(fff,"  %s: %d\n",weapon_skill_name[i],p->weapon_exp[i]);
+        fprintf(fff,"\n技能熟練度:\n");
+        for(i=0;i<5;++i) fprintf(fff,"  %s: %d\n",skills[i],p->skill_exp[i]);
+        fprintf(fff,"\n魔法領域の熟練度:\n");
+        for(i=1;i<=MAX_REALM;++i) if(p->magic_exp[i])
+            fprintf(fff,"  %s: %d\n",realm_names[i],p->magic_exp[i]);
+        fprintf(fff,"\n習得した必殺技:\n");
+        for(i=0;i<MAX_SB;++i) if(p->special_blow & (1UL<<i))
+            fprintf(fff,"  %s\n",special_blow_info[i].name);
+        for(i=1;i<=MAX_REALM;++i) if(p->realm_medium & (1UL<<(i-1)))
+            fprintf(fff,"巫女の魔法領域: %s\n",realm_names[i]);
+        fprintf(fff,"\n突然変異・恩寵／呪い・ギフト:\n");
+        dump_player_mutations(fff,p);
+        fprintf(fff,"\nエッセンス:\n");
+        dump_player_essences(fff,p);
+        fprintf(fff,"\n装備:\n");
+        for(i=0;i<INVEN_TOTAL-INVEN_RARM;++i) {
+            object_type object=equip[i];
+            char description[MAX_NLEN];
+            object_desc(description,&object,0);
+            fprintf(fff,"%c) %s\n",I2A(i),description);
+        }
+    }
+    fprintf(fff,"\n  [共有情報]\n\n");
+}
+
 errr make_character_dump(FILE *fff)
 {
 #ifdef JP
@@ -4533,9 +4593,10 @@ errr make_character_dump(FILE *fff)
 
 	update_playtime();
 
+	dump_aux_party(fff, TRUE);
 	dump_aux_display_player(fff);
+	dump_aux_party(fff, FALSE);
 	dump_aux_last_message(fff);
-	dump_aux_class_history(fff);
 	dump_aux_pet(fff);
 	dump_aux_stock_pet(fff);
 	dump_aux_quest(fff);
@@ -4548,13 +4609,9 @@ errr make_character_dump(FILE *fff)
 
 	dump_aux_recall(fff);
 	dump_aux_arena(fff);
-	dump_aux_resurrection_cnt(fff);
-	dump_aux_materialize_cnt(fff);
-	dump_aux_reincarnate_cnt(fff);
 	dump_aux_options(fff);
 	dump_aux_monsters(fff);
 	dump_aux_chaos_frame(fff);
-	dump_aux_mutations(fff);
 	dump_aux_runeweapon_ability(fff);
 	dump_aux_equipment_inventory(fff);
 	dump_aux_home_museum(fff);
