@@ -186,6 +186,20 @@ static void switching(void) {
     assert(!mw_old_weight && !mw_diff_to_melee && !p_ptr->magical_weapon);
     reset(); stop_the_time_player=TRUE; p_ptr->energy_need=-2000; assert(party_switch(1));
     assert(!stop_the_time_player && p_ptr->energy_need==0 && energy_use==100);
+    /* Shared world reservations and status counters survive; private equipment
+     * cooldowns remain frozen while the other member takes actions. */
+    reset(); p_ptr->word_recall=15; p_ptr->alter_reality=12;
+    p_ptr->cut=25; p_ptr->blind=9; p_ptr->tim_res_time=18;
+    p_ptr->earth_spike=20; p_ptr->wind_guard=19; p_ptr->tim_resurrection=8;
+    items[INVEN_RARM].timeout=77;
+    assert(party_switch(1));
+    assert(p_ptr->word_recall==15 && p_ptr->alter_reality==12);
+    assert(p_ptr->cut==25 && p_ptr->blind==9 && p_ptr->tim_res_time==18);
+    assert(!p_ptr->earth_spike && !p_ptr->wind_guard && !p_ptr->tim_resurrection);
+    items[INVEN_RARM].timeout=3;
+    assert(party_members[0].equipment[0].timeout==77);
+    assert(party_switch(0)); assert(items[INVEN_RARM].timeout==77);
+    assert(party_members[1].equipment[0].timeout==3);
     reset(); do_cmd_party(); assert(party_active==0 && !energy_use);
 }
 static void recruitment(void) {

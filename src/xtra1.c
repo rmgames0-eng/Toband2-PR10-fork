@@ -5026,7 +5026,27 @@ void calc_bonuses(void)
 	if (p_ptr->immune_fire) p_ptr->resist_fire = TRUE;
 	if (p_ptr->immune_cold) p_ptr->resist_cold = TRUE;
 
-	/* Hack -- handle "xtra" mode */
+	/* Complete derived values even during birth/switch previews. */
+	/* Determine player alignment (LNC) by equipment */
+	for (i = INVEN_RARM; i < INVEN_TOTAL; i++)
+	{
+		/* Access object */
+		o_ptr = &inventory[i];
+
+		/* Extract the item flags */
+		object_flags(o_ptr, flgs);
+
+		if (have_flag(flgs, TR_ALIGN_LNC)) p_ptr->align[ALI_LNC] += o_ptr->to_align[ALI_LNC] * 10;
+		if (have_flag(flgs, TR_ALIGN_GNE)) p_ptr->align[ALI_GNE] += o_ptr->to_align[ALI_GNE] * 10;
+	}
+
+	/* Limit player alignment (LNC) */
+	if (p_ptr->align[ALI_LNC] > 300) p_ptr->align[ALI_LNC] = 300;
+	if (p_ptr->align[ALI_LNC] < -300) p_ptr->align[ALI_LNC] = -300;
+
+	if ((p_ptr->pass_wall && !p_ptr->kill_wall) || WRAITH_FORM()) p_ptr->no_flowed = TRUE;
+
+	/* Suppress notifications and world actions in preview mode. */
 	if (character_xtra) return;
 
 	/* Take note when "shield state" changes */
@@ -5305,24 +5325,6 @@ void calc_bonuses(void)
 		monk_notify_aux = monk_armour_aux;
 	}
 
-	/* Determine player alignment (LNC) by equipment */
-	for (i = INVEN_RARM; i < INVEN_TOTAL; i++)
-	{
-		/* Access object */
-		o_ptr = &inventory[i];
-
-		/* Extract the item flags */
-		object_flags(o_ptr, flgs);
-
-		if (have_flag(flgs, TR_ALIGN_LNC)) p_ptr->align[ALI_LNC] += o_ptr->to_align[ALI_LNC] * 10;
-		if (have_flag(flgs, TR_ALIGN_GNE)) p_ptr->align[ALI_GNE] += o_ptr->to_align[ALI_GNE] * 10;
-	}
-
-	/* Limit player alignment (LNC) */
-	if (p_ptr->align[ALI_LNC] > 300) p_ptr->align[ALI_LNC] = 300;
-	if (p_ptr->align[ALI_LNC] < -300) p_ptr->align[ALI_LNC] = -300;
-
-	if ((p_ptr->pass_wall && !p_ptr->kill_wall) || WRAITH_FORM()) p_ptr->no_flowed = TRUE;
 
 	if (character_dungeon)
 	{

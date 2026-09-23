@@ -183,6 +183,71 @@ static void display_regressions(void)
     term_nuke(&sub);
 }
 
+static void mechanics_regressions(void)
+{
+    int target=1-party_active, c;
+    s32b gold=p_ptr->au[SV_GOLD_NOTE];
+    object_type pack[INVEN_RARM];
+    memcpy(pack,inventory,sizeof(pack));
+    object_type armor;
+    party_member saved=party_members[target];
+    keys="                                                                "; key_index=0; msg_print(NULL);
+    object_prep(&armor,lookup_kind(TV_SOFT_ARMOR,SV_ROBE));
+    armor.number=1;
+    add_flag(armor.art_flags,TR_ALIGN_LNC);
+    add_flag(armor.art_flags,TR_ALIGN_GNE);
+    armor.to_align[ALI_LNC]=4; armor.to_align[ALI_GNE]=-3;
+    party_members[target].equipment[INVEN_BODY-INVEN_RARM]=armor;
+    party_members[target].player.align_self[ALI_LNC]=10;
+    party_members[target].player.align_self[ALI_GNE]=20;
+    assert(party_switch(target));
+    assert(p_ptr->align[ALI_LNC]==50+friend_align_lnc);
+    assert(p_ptr->align[ALI_GNE]==-10+friend_align_gne);
+    assert(party_switch(1-target));
+    party_members[target]=saved;
+    p_ptr->wraith_form=5;
+    assert(party_switch(target));
+    assert(p_ptr->no_flowed);
+    p_ptr->wraith_form=0;
+    assert(party_switch(1-target));
+    /* Real bonuses for every class must settle before returning from switch.
+     * A normal update afterwards must not change HP/MP maxima, speed or armor. */
+    for(c=0;c<max_c_idx;++c) {
+        s32b hp,mp;
+        int speed,ac;
+        party_members[target]=saved;
+        party_members[target].player.pclass=c;
+        party_members[target].player.cexp_info[c].clev=1;
+        party_members[target].player.cexp_info[c].max_clev=1;
+        party_members[target].player.cexp_info[c].max_max_clev=1;
+        keys="                                                                "; key_index=0; msg_print(NULL);
+        assert(party_switch(target));
+        hp=p_ptr->mhp; mp=p_ptr->msp; speed=p_ptr->pspeed; ac=p_ptr->to_a;
+        p_ptr->update=PU_BONUS|PU_HP|PU_MANA;
+        character_icky=TRUE; update_stuff(); character_icky=FALSE;
+        assert(p_ptr->mhp==hp && p_ptr->msp==mp && p_ptr->pspeed==speed && p_ptr->to_a==ac);
+        assert(p_ptr->chp>=1 && p_ptr->chp<=p_ptr->mhp && p_ptr->csp<=p_ptr->msp);
+        assert(party_switch(1-target));
+    }
+    for(c=0;c<max_p_idx;++c) {
+        s32b hp,mp;
+        int speed,ac;
+        party_members[target]=saved;
+        party_members[target].player.prace=c;
+        keys="                                                                "; key_index=0; msg_print(NULL);
+        assert(party_switch(target));
+        hp=p_ptr->mhp; mp=p_ptr->msp; speed=p_ptr->pspeed; ac=p_ptr->to_a;
+        p_ptr->update=PU_BONUS|PU_HP|PU_MANA;
+        character_icky=TRUE; update_stuff(); character_icky=FALSE;
+        assert(p_ptr->mhp==hp && p_ptr->msp==mp && p_ptr->pspeed==speed && p_ptr->to_a==ac);
+        assert(p_ptr->chp>=1 && p_ptr->chp<=p_ptr->mhp && p_ptr->csp<=p_ptr->msp);
+        assert(party_switch(1-target));
+    }
+    assert(p_ptr->au[SV_GOLD_NOTE]==gold && !memcmp(pack,inventory,sizeof(pack)));
+    assert(p_ptr->poisoned==7 && p_ptr->oppose_cold==30);
+    party_members[target]=saved;
+}
+
 int main(int argc,char **argv)
 {
     char path[1024];
@@ -317,6 +382,7 @@ int main(int argc,char **argv)
         assert(atol(displayed)==p_ptr->chp);
     }
     display_regressions();
+    mechanics_regressions();
     character_generated=FALSE;
     p_ptr->is_dead=DEATH_DEAD;
     assert(save_player()); party_reset(); assert(load_player());
