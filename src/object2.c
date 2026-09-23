@@ -8348,8 +8348,6 @@ static void make_ammo_from_ore(void)
 	object_aware(q_ptr);
 	object_known(q_ptr);
 
-	item = inven_carry(q_ptr);
-
 	object_desc(o_name, q_ptr, OD_NAME_ONLY);
 #ifdef JP
 	msg_format("$%dの%sで%sを作った。", amt * k_ptr->cost * q_ptr->weight * 2L,
@@ -8359,12 +8357,16 @@ static void make_ammo_from_ore(void)
 		k_name + k_ptr->name, o_name);
 #endif
 
+	/* Place the newly made ammunition exactly once. */
+	if (inven_carry_okay(q_ptr))
 	{
-		/* Auto-inscription */
-		autopick_alter_item(item, FALSE);
-
-		if (inven_carry_okay(q_ptr)) (void)inven_carry(q_ptr);
-		else (void)drop_near(q_ptr, -1, py, px);
+		item = inven_carry(q_ptr);
+		if (item >= 0) autopick_alter_item(item, FALSE);
+	}
+	else
+	{
+		item = drop_near(q_ptr, -1, py, px);
+		if (item > 0) autopick_alter_item(0 - item, FALSE);
 	}
 }
 

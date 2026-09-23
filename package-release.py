@@ -23,6 +23,8 @@ if archive.exists():
     parser.error('Archive already exists: ' + str(archive))
 tracked = subprocess.check_output(['git', '-C', str(ROOT), 'ls-files', '-z']).decode('utf-8').split('\0')
 revision = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
+if subprocess.run(['git', '-C', str(ROOT), 'diff', '--quiet', 'HEAD']).returncode:
+    revision += ' (uncommitted changes)'
 with tempfile.TemporaryDirectory(prefix='toband-release-') as tmp:
     build = Path(tmp)
     subprocess.run([sys.executable, str(ROOT / 'build-mingw.py'), '--build-dir', str(build)], check=True)
@@ -40,8 +42,8 @@ ZIPをフォルダーごと展開し、TOband.exeを起動してください。
 libフォルダーはTOband.exeと同じ場所に置いてください。
 Pythonやコンパイラのインストールは不要です。
 
-変更: モンスター経験値の桁あふれ・除算処理を修正。
-検証: 経験値回帰テストとビルドを実施。ゲーム内のプレイ確認は未実施。
+変更: ガンナーの鉱石からの矢弾生成で、完成品が二重に追加される不具合を修正。
+検証: 矢弾生成・経験値の回帰テストとビルドを実施。ゲーム内のプレイ確認は未実施。
 既存のゲームに上書きせず、別フォルダーへ展開してください。
 
 ソース: https://github.com/rmgames0-eng/Toband2-PR10-fork
