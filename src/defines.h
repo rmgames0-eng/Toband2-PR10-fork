@@ -2540,6 +2540,7 @@
 #define PW_EQUIP        0x00000002L     /* Display equip/inven */
 #define PW_SPELL        0x00000004L     /* Display spell list */
 #define PW_PLAYER       0x00000008L     /* Display character */
+#define PW_MONLIST      0x00000010L     /* Display visible monsters */
 /* xxx */
 /* xxx */
 #define PW_MESSAGE      0x00000040L     /* Display messages */

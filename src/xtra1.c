@@ -1920,6 +1920,117 @@ static void fix_dungeon(void)
 /*
  * Hack -- display monster recall in sub-windows
  */
+/* Inspired by Hengband's fix_monster_list / target_sensing_monsters_prepare:
+ * https://github.com/hengband/hengband/blob/master/src/window/display-sub-windows.cpp
+ * Group apparent races, exclude pets, and do not reveal unknown levels.
+ */
+typedef struct visible_monster_group {
+	int race, count, awake;
+} visible_monster_group;
+
+static int compare_visible_monsters(const void *a, const void *b)
+{
+	const visible_monster_group *x = a, *y = b;
+	monster_race *rx = &r_info[x->race], *ry = &r_info[y->race];
+	int ux = !!(rx->flags1 & RF1_UNIQUE), uy = !!(ry->flags1 & RF1_UNIQUE);
+	if (ux != uy) return uy - ux;
+	if (!!rx->r_tkills != !!ry->r_tkills) return !!rx->r_tkills - !!ry->r_tkills;
+	if (rx->r_tkills && ry->r_tkills && rx->level != ry->level) return ry->level - rx->level;
+	return y->race - x->race;
+}
+
+/* Term_putstr's byte limit can split a Japanese character. */
+static void monster_list_text(int x, int y, int width, byte attr, cptr text)
+{
+	int len = 0;
+	if (width <= 0) return;
+	while (text[len])
+	{
+		int step = 1;
+#ifdef JP
+		if (iskanji(text[len])) step = 2;
+#endif
+		if (len + step > width || (step == 2 && !text[len + 1])) break;
+		len += step;
+	}
+	if (len) Term_putstr(x, y, len, attr, text);
+}
+
+static void fix_monster_list(void)
+{
+	visible_monster_group *groups;
+	int i, k, j, count = 0;
+	term *old = Term;
+	C_MAKE(groups, m_max, visible_monster_group);
+	if (!p_ptr->image)
+	{
+		for (i = 1; i < m_max; i++)
+		{
+			monster_type *m_ptr = &m_list[i];
+			int race = m_ptr->ap_r_idx;
+			if (!m_ptr->r_idx || !m_ptr->ml || is_pet(m_ptr) || !race) continue;
+			for (k = 0; k < count; k++) if (groups[k].race == race) break;
+			if (k == count) { groups[k].race = race; count++; }
+			groups[k].count++;
+			if (!MON_CSLEEP(m_ptr)) groups[k].awake++;
+		}
+	}
+	qsort(groups, count, sizeof(*groups), compare_visible_monsters);
+	for (j = 1; j < 8; j++)
+	{
+		int w, h, rows, y;
+		if (!angband_term[j] || !(window_flag[j] & PW_MONLIST)) continue;
+		Term_activate(angband_term[j]);
+		Term_get_size(&w, &h);
+		/* Preserve terminal diffing instead of forcing a full-window repaint. */
+		for (y = 0; y < h; y++) Term_erase(0, y, w);
+		if (!count)
+		{
+#ifdef JP
+			monster_list_text(0, 0, w, TERM_SLATE, p_ptr->image ? "幻覚で見分けられない" : "モンスターはいない");
+#else
+			monster_list_text(0, 0, w, TERM_SLATE, p_ptr->image ? "Hallucinating" : "No visible monsters");
+#endif
+		}
+		rows = count > h ? h - 1 : count;
+		for (i = 0; i < rows; i++)
+		{
+			monster_race *r_ptr = &r_info[groups[i].race];
+			char buf[128], num[16], level[16];
+			if (r_ptr->flags1 & RF1_UNIQUE) strcpy(num, "U");
+			else sprintf(num, "%d", groups[i].count);
+			if (r_ptr->r_tkills) sprintf(level, "%d", r_ptr->level);
+			else strcpy(level, "??");
+#ifdef JP
+			sprintf(buf, "%3s(覚%2d) ", num, groups[i].awake);
+#else
+			sprintf(buf, "%3s(%2d) ", num, groups[i].awake);
+#endif
+			k = strlen(buf);
+			monster_list_text(0, i, w, TERM_WHITE, buf);
+			if (k < w) Term_putch(k, i, r_ptr->d_attr, r_ptr->d_char);
+			sprintf(buf, " %2s ", level);
+			monster_list_text(k + 1, i, w - k - 1, TERM_WHITE, buf);
+			k += 1 + strlen(buf);
+			monster_list_text(k, i, w - k, TERM_WHITE, r_name + r_ptr->name);
+		}
+		if (count > h)
+		{
+			char buf[80];
+#ifdef JP
+			sprintf(buf, "ほか %d 種類", count - rows);
+#else
+			sprintf(buf, "%d more types", count - rows);
+#endif
+			monster_list_text(0, h - 1, w, TERM_SLATE, buf);
+		}
+		Term_fresh();
+	}
+	Term_activate(old);
+	C_FREE(groups, m_max, visible_monster_group);
+}
+
+
 static void fix_monster(void)
 {
 	int j;
@@ -5669,6 +5780,9 @@ void window_stuff(void)
 
 	u32b mask = 0L;
 
+	/* Refresh visible counts and sleep state when subwindows are serviced. */
+	p_ptr->window |= PW_MONLIST;
+
 
 	/* Nothing to do */
 	if (!p_ptr->window) return;
@@ -5686,6 +5800,12 @@ void window_stuff(void)
 	/* Nothing to do */
 	if (!p_ptr->window) return;
 
+
+	if (p_ptr->window & PW_MONLIST)
+	{
+		p_ptr->window &= ~PW_MONLIST;
+		fix_monster_list();
+	}
 
 	/* Display inventory */
 	if (p_ptr->window & (PW_INVEN))
