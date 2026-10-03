@@ -506,7 +506,7 @@ static cptr r_info_flagsa[] =
 	"S_HI_DEMON",
 	"BA_DISI",
 	"PURE_ELEM_BEAM",
-	"XXX",
+	"BR_PURE_ELEM",
 	"XXX",
 	"XXX",
 	"XXX",
@@ -683,6 +683,13 @@ static cptr k_info_flags[] =
 	"FIXED_FLAVOR",
 	"XXX",
 	"XXX",
+	"CLASS_GENERAL",
+	"CLASS_HIGHWITCH",
+	"CLASS_WHITEKNIGHT",
+	"CLASS_TEMPLEKNIGHT",
+	"CLASS_RELICSKNIGHT",
+	"CLASS_LORD",
+	"CLASS_ANGELKNIGHT",
 };
 
 
@@ -710,16 +717,16 @@ static cptr k_info_gen_flags[] =
 	"BACRUM",
 	"ZENOBIAN",
 	"LODIS",
-	"XXX",
-	"XXX",
-	"XXX",
-	"XXX",
-	"XXX",
-	"XXX",
-	"XXX",
-	"XXX",
-	"XXX",
-	"XXX",
+	"CLASS_GUNNER",
+	"CLASS_NINJAMASTER",
+	"CLASS_ARCHMAGE",
+	"CLASS_FREYA",
+	"CLASS_CRESCENT",
+	"CLASS_VAMPIRE",
+	"CLASS_MEDIUM",
+	"CLASS_SUCCUBUS",
+	"CLASS_GRAPPLER",
+	"CLASS_ENIGMAHUNTER",
 };
 
 
@@ -2576,7 +2583,17 @@ errr parse_r_info(char *buf, header *head)
 		r_ptr = &r_info[i];
 #ifdef JP
 		/* Store the name */
-		if (!add_name(&r_ptr->name, head, s)) return (7);
+		if (IS_RANDOM_UNIQUE(error_idx))
+        {
+            char reserved[RANDOM_UNIQUE_NAME_SIZE];
+            size_t len = strlen(s);
+            if (len >= sizeof(reserved)) return 7;
+            memset(reserved, ' ', sizeof(reserved) - 1);
+            memcpy(reserved, s, len);
+            reserved[sizeof(reserved) - 1] = 0;
+            if (!add_name(&r_ptr->name, head, reserved)) return 7;
+        }
+        else if (!add_name(&r_ptr->name, head, s)) return (7);
 #endif
 	}
 
@@ -2602,7 +2619,17 @@ errr parse_r_info(char *buf, header *head)
 		s = buf+2;
 
 		/* Store the name */
-		if (!add_name(&r_ptr->name, head, s)) return (7);
+		if (IS_RANDOM_UNIQUE(error_idx))
+        {
+            char reserved[RANDOM_UNIQUE_NAME_SIZE];
+            size_t len = strlen(s);
+            if (len >= sizeof(reserved)) return 7;
+            memset(reserved, ' ', sizeof(reserved) - 1);
+            memcpy(reserved, s, len);
+            reserved[sizeof(reserved) - 1] = 0;
+            if (!add_name(&r_ptr->name, head, reserved)) return 7;
+        }
+        else if (!add_name(&r_ptr->name, head, s)) return (7);
 	}
 #endif
 	/* Process 'D' for "Description" */
@@ -3620,6 +3647,7 @@ struct dungeon_grid
 	int		feature;		/* Terrain feature */
 	int		monster;		/* Monster */
 	int		object;			/* Object */
+	int object_quality; /* 0: random, 1: good, 2: great (as vault 8) */
 	int		ego;			/* Ego-Item */
 	int		artifact;		/* Artifact */
 	int		trap;			/* Trap */
@@ -3633,18 +3661,18 @@ static dungeon_grid letter[255];
 
 
 /*
- * Process "F:<letter>:<terrain>:<cave_info>:<monster>:<object>:<ego>:<artifact>:<trap>:<special>" -- info for dungeon grid
+ * Process "F:<letter>:<terrain>:<cave_info>:<monster>:<object>:<ego>:<artifact>:<trap>:<special>[:<quality>]" -- info for dungeon grid
  */
 static errr parse_line_feature(char *buf)
 {
 	int num;
-	char *zz[9];
+	char *zz[10];
 
 
 	if (init_flags & INIT_ONLY_BUILDINGS) return (0);
 
 	/* Tokenize the line */
-	if ((num = tokenize(buf+2, 9, zz, 0)) > 1)
+	if ((num = tokenize(buf+2, 10, zz, 0)) > 1)
 	{
 		/* Letter to assign */
 		int index = zz[0][0];
@@ -3653,6 +3681,7 @@ static errr parse_line_feature(char *buf)
 		letter[index].feature = 0;
 		letter[index].monster = 0;
 		letter[index].object = 0;
+		letter[index].object_quality = 0;
 		letter[index].ego = 0;
 		letter[index].artifact = 0;
 		letter[index].trap = 0;
@@ -3662,8 +3691,14 @@ static errr parse_line_feature(char *buf)
 
 		switch (num)
 		{
-			/* Special */
-			case 9:
+			/* Optional minimum random-object quality; old maps keep random quality. */
+            case 10:
+                if (strcmp(zz[9], "0") && strcmp(zz[9], "1") && strcmp(zz[9], "2"))
+                    return PARSE_ERROR_GENERIC;
+                letter[index].object_quality = atoi(zz[9]);
+                /* Fall through */
+            /* Special */
+            case 9:
 				letter[index].special = atoi(zz[8]);
 				/* Fall through */
 			/* Trap */
@@ -3951,9 +3986,24 @@ static errr process_dungeon_file_aux(char *buf, int ymin, int xmin, int ymax, in
 			int idx = s[0];
 
 			int object_index = letter[idx].object;
+            u32b object_flags = AMF_OKAY;
+            if (letter[idx].object_quality >= 1) object_flags |= AMF_GOOD;
+            if (letter[idx].object_quality >= 2) object_flags |= AMF_GREAT;
 			int monster_index = letter[idx].monster;
 			int random = letter[idx].random;
 			int artifact_index = letter[idx].artifact;
+            /* -4 denotes the accepted Vault quest's artifact. */
+            if (artifact_index == -QUEST_VAULT)
+                artifact_index = quest[QUEST_VAULT].k_idx;
+            /* The three decoys use the selected artifact's base kind. */
+            if (object_index == -QUEST_VAULT && !(random & RANDOM_OBJECT))
+            {
+                int a_idx = quest[QUEST_VAULT].k_idx;
+                if (a_idx <= 0 || a_idx >= max_a_idx) return PARSE_ERROR_OUT_OF_BOUNDS;
+                object_index = lookup_kind(a_info[a_idx].tval, a_info[a_idx].sval);
+                if (!object_index) return PARSE_ERROR_OUT_OF_BOUNDS;
+            }
+
 
 			/* Lay down a floor */
 			c_ptr->feat = letter[idx].feature;
@@ -4026,7 +4076,7 @@ static errr process_dungeon_file_aux(char *buf, int ymin, int xmin, int ymax, in
 				 */
 				if (randint0(100) < 75)
 				{
-					place_object(*y, *x, AMF_OKAY);
+					place_object(*y, *x, object_flags);
 				}
 				else
 				{
@@ -4039,8 +4089,11 @@ static errr process_dungeon_file_aux(char *buf, int ymin, int xmin, int ymax, in
 			{
 				object_level = base_level + object_index;
 
-				/* Create an out of deep object */
-				if (randint0(100) < 75)
+				/* Explicit quality uses the same minimum as standard vaults. */
+                if (letter[idx].object_quality)
+                    place_object(*y, *x, object_flags);
+                /* Legacy maps retain their original random quality. */
+                else if (randint0(100) < 75)
 					place_object(*y, *x, AMF_OKAY);
 				else if (randint0(100) < 80)
 					place_object(*y, *x, AMF_OKAY | AMF_GOOD);
@@ -4159,7 +4212,8 @@ static errr process_dungeon_file_aux(char *buf, int ymin, int xmin, int ymax, in
 				q_ptr->max_num = atoi(zz[5]);
 				q_ptr->level   = atoi(zz[6]);
 				q_ptr->r_idx   = atoi(zz[7]);
-				q_ptr->k_idx   = atoi(zz[8]);
+                if (q_idx != QUEST_VAULT || q_ptr->status == QUEST_STATUS_UNTAKEN || !q_ptr->k_idx)
+                    q_ptr->k_idx = atoi(zz[8]);
 				q_ptr->dungeon = atoi(zz[9]);
 
 				if (num > 10)
@@ -4198,7 +4252,22 @@ static errr process_dungeon_file_aux(char *buf, int ymin, int xmin, int ymax, in
 		{
 			if (init_flags & INIT_SHOW_TEXT)
 			{
-				strcpy(quest_text[quest_text_line], zz[2]);
+                if (q_idx == QUEST_VAULT && streq(zz[2], "$VAULT_ITEM"))
+                {
+                    if (q_ptr->status == QUEST_STATUS_UNTAKEN)
+                        strcpy(quest_text[quest_text_line], "対象の武器は依頼を受けた時にお伝えします。");
+                    else if (q_ptr->k_idx > 0 && q_ptr->k_idx < max_a_idx)
+                    {
+                        object_type forge;
+                        artifact_type *a_ptr = &a_info[q_ptr->k_idx];
+                        char name[MAX_NLEN];
+                        object_prep(&forge, lookup_kind(a_ptr->tval, a_ptr->sval));
+                        forge.name1 = q_ptr->k_idx;
+                        object_desc(name, &forge, OD_NAME_ONLY | OD_STORE);
+                        strnfmt(quest_text[quest_text_line], 80, "%s", name);
+                    }
+                }
+                else strcpy(quest_text[quest_text_line], zz[2]);
 				quest_text_line++;
 			}
 

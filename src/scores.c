@@ -178,9 +178,9 @@ void display_scores_aux(int from, int to, int note, high_score *score)
 
 		/* Title */
 #ifdef JP
-		put_str("                TOband2: Í¦¼Ô¤ÎÅÂÆ²", 0, 0);
+		put_str("                TOband-R3: Í¦¼Ô¤ÎÅÂÆ²", 0, 0);
 #else
-		put_str("                TOband2 Hall of Fame", 0, 0);
+		put_str("                TOband-R3 Hall of Fame", 0, 0);
 #endif
 
 

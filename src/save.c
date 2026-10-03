@@ -1292,9 +1292,12 @@ static void wr_party(void)
     wr_byte(party_count);
     wr_byte(party_active);
     wr_byte(party_rewards);
+    wr_u16b(MAX_CLASS); /* Party v6: serialized class count. */
     for (m = 0; m < party_count; ++m)
     {
         party_member *member = &party_members[m];
+        wr_byte(member->dead);
+        wr_byte(member->revived);
         wr_string(member->name);
         for (j = 0; j < 4; ++j) wr_string(member->player.history[j]);
 #define PARTY_FIELD(type, name, count) for (i = 0; i < (count); ++i) wr_##type(((type *)&member->player.name)[i]);
@@ -1313,6 +1316,37 @@ static void wr_party(void)
         wr_s16b(member->weapon_weight);
         wr_s16b(member->weapon_melee);
         for (i = 0; i < INVEN_TOTAL - INVEN_RARM; ++i) wr_item(&member->equipment[i]);
+        /* Party v4: private weapon timers and brands. */
+        wr_s16b(member->player.magical_weapon);
+        wr_s16b(member->player.evil_weapon);
+        wr_u32b(member->player.special_attack & PARTY_WEAPON_BRANDS);
+        /* Party v5: individual ailments and temporary effects. */
+#define PARTY_EFFECT(type, name) wr_##type(member->player.name);
+#include "party-effects.h"
+#undef PARTY_EFFECT
+        /* Party v7: personal named technique. */
+        wr_string(member->player.temple_tech_name);
+        wr_u32b(member->player.temple_tech_effects);
+    }
+}
+
+static void wr_random_uniques(void)
+{
+    int i, j;
+    wr_byte(1); /* Dynamic race record version. */
+    wr_u32b(random_unique_kills);
+    for (i = MON_RANDOM_UNIQUE_1; i <= MON_RANDOM_UNIQUE_3; i++)
+    {
+        monster_race *r = &r_info[i];
+        wr_string(r_name + r->name);
+#define RANDOM_UNIQUE_FIELD(type, field) wr_##type(r->field);
+#include "random-unique-fields.h"
+#undef RANDOM_UNIQUE_FIELD
+        for (j = 0; j < 4; j++)
+        {
+            wr_byte(r->blow[j].method); wr_byte(r->blow[j].effect);
+            wr_byte(r->blow[j].d_dice); wr_byte(r->blow[j].d_side);
+        }
     }
 }
 
@@ -1452,6 +1486,7 @@ static bool wr_savefile_new(void)
 	/* Dump the monster lore */
 	tmp16u = max_r_idx;
 	wr_u16b(tmp16u);
+    wr_random_uniques();
 	for (i = 0; i < (tmp16u + MAX_RUNEWEAPON); i++) wr_lore(i);
 
 
@@ -1710,7 +1745,7 @@ bool save_player(void)
 
 	char    safe[1024];
 
-	if (party_creating) return FALSE;
+	if (party_creating || party_casting) return FALSE;
 
 
 #ifdef SET_UID

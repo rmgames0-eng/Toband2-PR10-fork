@@ -51,6 +51,69 @@
  */
 static FILE	*fff;
 
+/* Runeweapon races follow the fixed monster table in each save. */
+static int saved_race_count;
+
+/* Old Heaven saves used 1000..1100 with guardians every 25 floors.
+ * Detect that layout from saved quest levels, not the overlapping floor 1000. */
+static bool migrate_heaven_depths;
+
+static s16b restored_heaven_depth(s16b depth)
+{
+    if (depth < 1000) return depth;
+    if (depth <= 1025) return 950 + (depth - 1000) * 20 / 25;
+    if (depth <= 1050) return 970 + (depth - 1025) * 10 / 25;
+    if (depth <= 1075) return 980 + (depth - 1050) * 10 / 25;
+    return MIN(1000, 990 + (depth - 1075) * 10 / 25);
+}
+
+static s16b restored_demon_depth(s16b depth)
+{
+    if (depth < 666 || depth > 696) return depth;
+    return 950 + (depth - 666) * 50 / 30;
+}
+
+static void restore_changed_floor(saved_floor_type *sf_ptr)
+{
+    if (migrate_heaven_depths && dungeon_type == DUNGEON_HEAVEN)
+    {
+        dun_level = restored_heaven_depth(dun_level);
+        base_level = restored_heaven_depth(base_level);
+    }
+    if (dungeon_type == DUNGEON_DEMON)
+    {
+        dun_level = restored_demon_depth(dun_level);
+        base_level = restored_demon_depth(base_level);
+    }
+    if (sf_ptr) sf_ptr->dun_level = dun_level;
+    if (!dun_level)
+    {
+        int y, x;
+        for (y = 0; y < cur_hgt; y++) for (x = 0; x < cur_wid; x++)
+        {
+            cave_type *c_ptr = &cave[y][x];
+            if (c_ptr->special == DUNGEON_DEMON &&
+                (c_ptr->feat == FEAT_ENTRANCE || c_ptr->feat == FEAT_ENTRANCE_UPWARD))
+            {
+                c_ptr->feat = FEAT_DIRT;
+                c_ptr->mimic = 0;
+                c_ptr->special = 0;
+            }
+        }
+    }
+    ensure_demon_gate();
+}
+
+
+static s16b restore_race_index(s16b idx)
+{
+    if (saved_race_count > 0 && saved_race_count < max_r_idx &&
+        idx >= saved_race_count && idx < saved_race_count + MAX_RUNEWEAPON)
+        return idx + max_r_idx - saved_race_count;
+    return idx;
+}
+
+
 /*
  * Hack -- old "encryption" byte
  */
@@ -327,6 +390,8 @@ static void rd_item(object_type *o_ptr)
 	/* Special pval */
 	if (flags & SAVE_ITEM_PVAL) rd_s16b(&o_ptr->pval);
 	else o_ptr->pval = 0;
+    if (o_ptr->tval == TV_CORPSE || o_ptr->tval == TV_STATUE || o_ptr->tval == TV_FIGURINE)
+        o_ptr->pval = restore_race_index(o_ptr->pval);
 
 	if (flags & SAVE_ITEM_DISCOUNT) rd_byte(&o_ptr->discount);
 	else o_ptr->discount = 0;
@@ -392,6 +457,13 @@ static void rd_item(object_type *o_ptr)
 
 	if (flags & SAVE_ITEM_FEELING) rd_byte(&o_ptr->feeling);
 	else o_ptr->feeling = 0;
+
+	/* Retire the old ambiguous feeling; allow the item to be sensed again. */
+	if (o_ptr->feeling == FEEL_UNCURSED)
+	{
+		o_ptr->feeling = FEEL_NONE;
+		o_ptr->ident &= ~IDENT_SENSE;
+	}
 
 	if (flags & SAVE_ITEM_INSCRIPTION)
 	{
@@ -467,6 +539,8 @@ static void rd_monster(monster_type *m_ptr)
 	/* Monster race index of its appearance */
 	if (flags & SAVE_MON_AP_R_IDX) rd_s16b(&m_ptr->ap_r_idx);
 	else m_ptr->ap_r_idx = m_ptr->r_idx;
+    m_ptr->r_idx = restore_race_index(m_ptr->r_idx);
+    m_ptr->ap_r_idx = restore_race_index(m_ptr->ap_r_idx);
 
 	if (flags & SAVE_MON_SUB_ALIGN) rd_byte(&m_ptr->sub_align);
 	else m_ptr->sub_align = SUB_ALIGN_NEUTRAL;
@@ -611,6 +685,11 @@ static void rd_monster(monster_type *m_ptr)
 
 	else m_ptr->nickname = 0;
 
+    /* Retired random-name variants keep their saved body, but not auto-names. */
+    if (m_ptr->r_idx > 0 && m_ptr->r_idx < max_r_idx &&
+        (r_info[m_ptr->r_idx].flags1 & RF1_RAND_U_NAME))
+        m_ptr->nickname = 0;
+
 	if (flags & SAVE_MON_PARENT) rd_s16b(&m_ptr->parent_m_idx);
 	else m_ptr->parent_m_idx = 0;
 }
@@ -620,6 +699,40 @@ static void rd_monster(monster_type *m_ptr)
 /*
  * Read the monster lore
  */
+static errr rd_random_uniques(void)
+{
+    int i, j;
+    byte version;
+    rd_byte(&version);
+    if (version != 1) return 1;
+    rd_u32b(&random_unique_kills);
+    for (i = MON_RANDOM_UNIQUE_1; i <= MON_RANDOM_UNIQUE_3; i++)
+    {
+        monster_race *r = &r_info[i];
+        if (i >= max_r_idx) return 1;
+        rd_string(r_name + r->name, RANDOM_UNIQUE_NAME_SIZE);
+#define RANDOM_UNIQUE_FIELD(type, field) rd_##type(&r->field);
+#include "random-unique-fields.h"
+#undef RANDOM_UNIQUE_FIELD
+        /* Escort symbols are derived, so the existing save layout is unchanged. */
+        memset(r->escort_char, 0, sizeof(r->escort_char));
+        if (r->flags1 & RF1_ESCORT) r->escort_char[0] = r->d_char;
+        r->text = 0;
+        for (j = 0; j < 4; j++)
+        {
+            rd_byte(&r->blow[j].method); rd_byte(&r->blow[j].effect);
+            rd_byte(&r->blow[j].d_dice); rd_byte(&r->blow[j].d_side);
+            if (r->blow[j].method > RBM_SHOOT || r->blow[j].effect > RBE_HELL) return 1;
+        }
+        if (!r->hdice || !r->hside || r->level > 127 || !r->level ||
+            r->speed < 1 || r->speed > 199 || r->freq_spell > 100 ||
+            !(r->flags1 & RF1_UNIQUE) || !(r->flags7 & RF7_UNIQUE2) ||
+            (r->extra != 0 && r->extra != 1) || r->d_attr > 15 || r->x_attr > 15)
+            return 1;
+    }
+    return 0;
+}
+
 static void rd_lore(int r_idx)
 {
 	byte tmp8u;
@@ -694,7 +807,8 @@ static void rd_lore(int r_idx)
 	else if (r_ptr->flags3 & RF3_ELEM_WIND) r_ptr->r_elem = ELEM_WIND;
 	else if (r_ptr->r_elem == NO_ELEM)
 	{
-		if (r_ptr->flags1 & RF1_UNIQUE) r_ptr->r_elem = randint0(ELEM_NUM);
+		/* Dynamic races already saved their chosen affinity, including none. */
+		if (!IS_RANDOM_UNIQUE(r_idx) && (r_ptr->flags1 & RF1_UNIQUE)) r_ptr->r_elem = randint0(ELEM_NUM);
 	}
 	else
 	{
@@ -1412,6 +1526,7 @@ static errr rd_extra(void)
 	for (i = 0; i < MAX_KUBI; i++)
 	{
 		rd_s16b(&kubi_r_idx[i]);
+        kubi_r_idx[i] = restore_race_index(kubi_r_idx[i]);
 	}
 
 	rd_s32b(&p_ptr->gx_dis);
@@ -1476,6 +1591,9 @@ static errr rd_extra(void)
 		for(i = 0; i < max; i++)
 		{
 			rd_s16b(&max_dlv[i]);
+            if (i == DUNGEON_DEMON) max_dlv[i] = restored_demon_depth(max_dlv[i]);
+            if (i == DUNGEON_HEAVEN && migrate_heaven_depths)
+                max_dlv[i] = restored_heaven_depth(max_dlv[i]);
 			if (max_dlv[i] > d_info[i].maxdepth) max_dlv[i] = d_info[i].maxdepth;
 		}
 	}
@@ -2170,6 +2288,7 @@ static errr rd_dungeon(void)
 
 		/* Read the current floor data */
 		err = rd_saved_floor(NULL);
+        if (!err) restore_changed_floor(NULL);
 	}
 
 	/*** In the dungeon ***/
@@ -2211,6 +2330,8 @@ static errr rd_dungeon(void)
 
 			/* Error? */
 			if (err) break;
+
+            restore_changed_floor(sf_ptr);
 
 			/* Re-save as temporal saved floor file */
 			if (!save_floor(sf_ptr, SLF_SECOND)) err = 182;
@@ -2310,22 +2431,29 @@ static errr rd_dungeon(void)
 static errr rd_party(void)
 {
     byte version;
+    u16b party_classes = 39;
     int m, i, j;
     rd_byte(&version);
-    if (version != PARTY_SAVE_VERSION) return 1;
+    if (version < 1 || version > PARTY_SAVE_VERSION) return 1;
     rd_byte(&party_count);
     rd_byte(&party_active);
     rd_byte(&party_rewards);
-    if (!party_count || party_count > MAX_PARTY_MEMBERS || party_active >= party_count || (party_rewards & ~3)) return 1;
+    if (version >= 6) rd_u16b(&party_classes);
+    if (!party_classes || party_classes > MAX_CLASS) return 1;
+    if (!party_count || party_count > MAX_PARTY_MEMBERS || party_active >= party_count || (party_rewards & ~(3 | PARTY_RECRUIT_SEALED))) return 1;
     for (m = 0; m < party_count; ++m)
     {
         party_member *member = &party_members[m];
+        if (version >= 2) { rd_byte(&member->dead); if (member->dead > 1) return 1; }
+        member->revived = FALSE;
+        if (version >= 3) { rd_byte(&member->revived); if (member->revived > 1) return 1; }
         rd_string(member->name, sizeof(member->name));
         for (j = 0; j < 4; ++j) rd_string(member->player.history[j], sizeof(member->player.history[j]));
-#define PARTY_FIELD(type, name, count) for (i = 0; i < (count); ++i) rd_##type(&((type *)&member->player.name)[i]);
+#define PARTY_FIELD(type, name, count) for (i = 0; i < ((count) == MAX_CLASS ? party_classes : ((count) == MAX_CLASS * PY_MAX_LEVEL ? party_classes * PY_MAX_LEVEL : (count))); ++i) rd_##type(&((type *)&member->player.name)[i]);
 #include "party-fields.h"
 #undef PARTY_FIELD
-        for (j = 0; j < MAX_CLASS; ++j)
+        if (member->player.resurrection_cnt) member->revived = TRUE;
+        for (j = 0; j < party_classes; ++j)
         {
             rd_s32b(&member->player.cexp_info[j].max_max_cexp);
             rd_s32b(&member->player.cexp_info[j].max_cexp);
@@ -2343,10 +2471,73 @@ static errr rd_party(void)
             rd_item(&member->equipment[i]);
             if (member->equipment[i].k_idx && member->equipment[i].number != 1) return 1;
         }
+        if (version >= 4)
+        {
+            rd_s16b(&member->player.magical_weapon);
+            rd_s16b(&member->player.evil_weapon);
+            rd_u32b(&member->player.special_attack);
+            if (member->player.magical_weapon < 0 || member->player.magical_weapon > 10000 ||
+                member->player.evil_weapon < 0 || member->player.evil_weapon > 10000 ||
+                (member->player.special_attack & ~PARTY_WEAPON_BRANDS)) return 1;
+        }
+        if (version >= 5)
+        {
+#define PARTY_EFFECT(type, name) rd_##type(&member->player.name);
+#include "party-effects.h"
+#undef PARTY_EFFECT
+        }
+        else
+        {
+            /* Shared legacy conditions stay with the controlled member only. */
+#define PARTY_EFFECT(type, name) member->player.name = m == party_active ? p_ptr->name : 0;
+#include "party-effects.h"
+#undef PARTY_EFFECT
+            if (m != party_active) member->player.celem = member->player.pelem;
+        }
+        member->player.temple_tech_name[0] = 0;
+        member->player.temple_tech_effects = 0;
+        if (version >= 7)
+        {
+            u32b bits;
+            int count = 0;
+            rd_string(member->player.temple_tech_name, sizeof(member->player.temple_tech_name));
+            rd_u32b(&member->player.temple_tech_effects);
+            bits = member->player.temple_tech_effects;
+            if (bits >= (1UL << TEMPLE_EFFECT_COUNT)) return 1;
+            for (; bits; bits &= bits - 1) count++;
+            if (count > 3 || (count && !temple_command_name_valid(member->player.temple_tech_name)) ||
+                (!count && member->player.temple_tech_name[0])) return 1;
+        }
         if (member->player.prace >= max_p_idx || member->player.pclass >= max_c_idx ||
             member->player.psex >= MAX_SEXES || member->player.pelem < 0 || member->player.pelem >= ELEM_NUM ||
             member->player.lev < 1 || member->player.lev > PY_MAX_LEVEL) return 1;
     }
+    /* Version 1 used the active HP/MP ratio at every switch. Stored reserve
+     * currents were only historical snapshots, not independent resources. */
+    if (version == 1)
+    {
+        for (m = 0; m < party_count; ++m)
+        {
+            player_type *p = &party_members[m].player;
+            party_members[m].dead = FALSE;
+            if (m == party_active)
+            {
+                p->chp = p_ptr->chp; p->chp_frac = p_ptr->chp_frac;
+                p->csp = p_ptr->csp; p->csp_frac = p_ptr->csp_frac;
+                party_members[m].dead = (p_ptr->is_dead || p_ptr->chp < 0) ? TRUE : FALSE;
+                continue;
+            }
+            p->chp = p_ptr->mhp > 0 && p->mhp > 0 ?
+                (s32b)((u64b)MIN(MAX(0, p_ptr->chp), p_ptr->mhp) * p->mhp / p_ptr->mhp) : 1;
+            p->chp = MAX(1, p->chp);
+            p->csp = p_ptr->msp > 0 && p->msp > 0 ?
+                (s32b)((u64b)MIN(MAX(0, p_ptr->csp), p_ptr->msp) * p->msp / p_ptr->msp) : 0;
+            p->chp_frac = p->csp_frac = 0;
+        }
+    }
+    strcpy(p_ptr->temple_tech_name, party_members[party_active].player.temple_tech_name);
+    p_ptr->temple_tech_effects = party_members[party_active].player.temple_tech_effects;
+    if (version < 4) party_migrate_weapons();
     return 0;
 }
 
@@ -2372,6 +2563,8 @@ static errr rd_savefile_new_aux(void)
 #endif
 
 
+    migrate_heaven_depths = FALSE;
+
 	/* Mention the savefile version */
 	note(format(
 #ifdef JP
@@ -2394,6 +2587,9 @@ static errr rd_savefile_new_aux(void)
 	x_check = 0L;
 
 	party_reset();
+    p_ptr->temple_tech_name[0] = 0;
+    p_ptr->temple_tech_effects = 0;
+	random_unique_reset();
 
 	/* Read the version number of the savefile */
 	rd_byte(&t_ver_extra);
@@ -2521,6 +2717,13 @@ static errr rd_savefile_new_aux(void)
 		return (21);
 	}
 
+    if (!t_older_than(0, 10, 0, 2) && rd_random_uniques())
+    {
+        note("ランダムユニークのデータを読み込めません。");
+        return 21;
+    }
+	saved_race_count = tmp16u;
+
 	/* Read the available records */
 	for (i = 0; i < tmp16u; i++)
 	{
@@ -2628,6 +2831,12 @@ static errr rd_savefile_new_aux(void)
 			{
 				rd_s16b(&quest[i].status);
 				rd_s16b(&quest[i].level);
+                if (i >= QUEST_FELLANA && i <= QUEST_FILARHH &&
+                    quest[i].level == 1025 + (i - QUEST_FELLANA) * 25)
+                {
+                    migrate_heaven_depths = TRUE;
+                    quest[i].level = 970 + (i - QUEST_FELLANA) * 10;
+                }
 
 				rd_byte(&quest[i].complev);
 
@@ -2641,6 +2850,7 @@ static errr rd_savefile_new_aux(void)
 
 					/* Load quest monster index */
 					rd_s16b(&quest[i].r_idx);
+                    quest[i].r_idx = restore_race_index(quest[i].r_idx);
 
 					if ((quest[i].type == QUEST_TYPE_RANDOM) && (!quest[i].r_idx))
 					{
@@ -3081,6 +3291,7 @@ errr rd_savefile_new(void)
 	if (!fff) return (-1);
 
 	/* Call the sub-function */
+    saved_race_count = max_r_idx;
 	err = rd_savefile_new_aux();
 
 	/* Check for errors */
@@ -3127,7 +3338,14 @@ static bool load_floor_aux(saved_floor_type *sf_ptr)
 	if (saved_floor_file_sign != tmp32u) return FALSE;
 
 	/* Read -- have error? */
-	if (rd_saved_floor(sf_ptr)) return FALSE;
+	{
+        int old_race_count = saved_race_count;
+        errr err;
+        saved_race_count = max_r_idx;
+        err = rd_saved_floor(sf_ptr);
+        saved_race_count = old_race_count;
+        if (err) return FALSE;
+    }
 
 
 #ifdef VERIFY_CHECKSUMS

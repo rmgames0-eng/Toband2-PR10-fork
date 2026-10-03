@@ -17,13 +17,13 @@ if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]*', args.version):
     parser.error('Version must contain only letters, numbers, dot, underscore or hyphen')
 output = args.output_dir.resolve()
 output.mkdir(parents=True, exist_ok=True)
-name = 'TOband2-' + args.version + '-windows-x86'
+name = 'TOband-R3-' + args.version + '-windows-x86'
 archive = output / (name + '.zip')
 if archive.exists():
     parser.error('Archive already exists: ' + str(archive))
-tracked = subprocess.check_output(['git', '-C', str(ROOT), 'ls-files', '-z']).decode('utf-8').split('\0')
-revision = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
-if subprocess.run(['git', '-C', str(ROOT), 'diff', '--quiet', 'HEAD']).returncode:
+tracked = subprocess.check_output(['git', '-c', 'safe.directory=' + ROOT.as_posix(), '-C', str(ROOT), 'ls-files', '-z']).decode('utf-8').split('\0')
+revision = subprocess.check_output(['git', '-c', 'safe.directory=' + ROOT.as_posix(), '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
+if subprocess.run(['git', '-c', 'safe.directory=' + ROOT.as_posix(), '-C', str(ROOT), 'diff', '--quiet', 'HEAD']).returncode:
     revision += ' (uncommitted changes)'
 with tempfile.TemporaryDirectory(prefix='toband-release-') as tmp:
     build = Path(tmp)
@@ -36,18 +36,15 @@ with tempfile.TemporaryDirectory(prefix='toband-release-') as tmp:
                 if Path(relative).suffix.lower() not in ('.fon', '.fnt'):
                     data = data.decode('euc_jp').encode('cp932')
                 z.writestr(name + '/' + relative, data)
-        readme = f'''TOband2 {args.version} / Windows 32bit版
+        readme = f'''TOband-R3 {args.version} / Windows 32bit版
 
 ZIPをフォルダーごと展開し、TOband.exeを起動してください。
 libフォルダーはTOband.exeと同じ場所に置いてください。
-Pythonやコンパイラのインストールは不要です。
+既存のゲームとは別フォルダーへ展開してください。
 
-変更: ガンナーの鉱石からの矢弾生成で、完成品が二重に追加される不具合を修正。
-検証: 矢弾生成・経験値の回帰テストとビルドを実施。ゲーム内のプレイ確認は未実施。
-既存のゲームに上書きせず、別フォルダーへ展開してください。
-
+ゲーム本体・スコア: https://toband-wiki.duckdns.org/game/
+Wiki: https://toband-wiki.duckdns.org/
 ソース: https://github.com/rmgames0-eng/Toband2-PR10-fork
-コミット: {revision}
 原版の説明・著作権表記: readme.txt / readme_angband
 '''
         z.writestr(name + '/README-release.txt', readme.encode('utf-8-sig'))

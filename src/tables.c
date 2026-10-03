@@ -1534,7 +1534,7 @@ u32b fake_spell_flags[MAX_REALM][3] =
 	/* Death Magic */
 	{
 		0x00001fff,
-		0x01ffe000,
+		0x03ffe000,
 		0x00000000
 	},
 	/* Symbiotic Magic */
@@ -1791,7 +1791,11 @@ cptr window_flag_desc[32] =
 	"Display character",
 #endif
 
-	NULL,
+#ifdef JP
+	"視界内のモンスター一覧",
+#else
+	"Display visible monsters",
+#endif
 	NULL,
 #ifdef JP
 	"メッセージ",
@@ -2992,7 +2996,7 @@ cptr silly_attacks[MAX_SILLY_ATTACK] =
   "はあなたに卍固めをかけて「1、2、3、ダーッ！」と叫んだ。",
   "は「いくじなし！ばかばかばか！」といって駆け出した。",
   "が「ごらん、ルーベンスの絵だよ」と言って静かに目を閉じた。",
-  "は言った。「TOband2、絶賛公開中！」",
+  "は言った。「TOband-R3、絶賛公開中！」",
 };
 
 /* Formatted style for strfmt() */
@@ -3038,7 +3042,7 @@ cptr silly_attacks_other[MAX_SILLY_ATTACK] =
   "%sに卍固めをかけて「1、2、3、ダーッ！」と叫んだ。",
   "「いくじなし！ばかばかばか！」といって駆け出した。",
   "「ごらん、ルーベンスの絵だよ」と言って静かに目を閉じた。",
-  "言った。「TOband2、絶賛公開中！」",
+  "言った。「TOband-R3、絶賛公開中！」",
 };
 #else
 

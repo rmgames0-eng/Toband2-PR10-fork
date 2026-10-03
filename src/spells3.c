@@ -11,6 +11,7 @@
  */
 
 #include "angband.h"
+#include "party.h"
 
 /* Maximum number of tries for teleporting */
 #define MAX_TRIES 100
@@ -770,7 +771,9 @@ static int choose_dungeon(cptr note)
 		char buf[80];
 		bool seiha = FALSE;
 
-		if (d_info[i].flags1 & DF1_CLOSED) continue;
+		/* Hidden realms become recall destinations only after entry. */
+		if ((d_info[i].flags1 & DF1_CLOSED) && (i != DUNGEON_HEAVEN) && (i != DUNGEON_DEMON)) continue;
+		if ((i == DUNGEON_HEAVEN || i == DUNGEON_DEMON) && (max_dlv[i] < d_info[i].mindepth)) continue;
 		if (!d_info[i].maxdepth) continue;
 		if (!max_dlv[i]) continue;
 		if ((i == DUNGEON_AIR_GARDEN) && (misc_event_flags & EVENT_CLOSE_AIR_GARDEN)) continue;
@@ -831,7 +834,8 @@ bool recall_player(int turns)
 	 */
 
 	/* Ironman option */
-	if (p_ptr->inside_arena || astral_mode || (d_info[dungeon_type].flags1 & DF1_CLOSED) ||
+	if (p_ptr->inside_arena || astral_mode ||
+	    ((d_info[dungeon_type].flags1 & DF1_CLOSED) && (dungeon_type != DUNGEON_HEAVEN) && (dungeon_type != DUNGEON_DEMON)) ||
 		(p_ptr->inside_quest && (quest[p_ptr->inside_quest].flags & QUEST_FLAG_NO_RECALL)))
 	{
 #ifdef JP
@@ -2714,8 +2718,7 @@ s = "使えるものがありません。";
 		o_ptr = &o_list[0 - item];
 	}
 
-	if (object_is_astral_runeweapon(o_ptr) ||
-	    ((dungeon_type == DUNGEON_HEAVEN) && (o_ptr->name1 == ART_BRUNHILD)))
+	if (object_is_astral_runeweapon(o_ptr))
 	{
 		msg_print("無力化の光が跳ね返された！");
 
@@ -3819,7 +3822,7 @@ int calc_use_mana(int spell, int realm)
 
 	if (use_mana < 1) use_mana = 1;
 
-	return use_mana;
+	return party_magic_cost(use_mana);
 }
 
 
@@ -3959,6 +3962,8 @@ bool spell_okay(int spell, int use_realm)
 {
 	/* Access the spell */
 	magic_type *s_ptr = &mp_ptr->info[use_realm - 1][spell];
+
+    if (party_casting && use_realm == REALM_DRAKONITE && spell == 0) return FALSE;
 
 	/* Spell is illegal */
 	if (s_ptr->slevel > p_ptr->magic_exp[use_realm]/10) return FALSE;
@@ -4720,8 +4725,7 @@ bool curse_weapon(bool force, int slot)
 
 	/* Attempt a saving throw */
 	if ((object_is_artifact(o_ptr) && (randint0(100) < 50) && !force) ||
-		object_is_astral_runeweapon(o_ptr) ||
-		((dungeon_type == DUNGEON_HEAVEN) && (o_ptr->name1 == ART_BRUNHILD)))
+		object_is_astral_runeweapon(o_ptr))
 	{
 		/* Cool */
 #ifdef JP
@@ -5452,7 +5456,8 @@ bool summon_kin_player(int level, int y, int x, u32b mode)
 	}
 	switch (p_ptr->pclass)
 	{
-	case CLASS_TEMPLEKNIGHT:
+	case CLASS_TEMPLECOMMAND:
+		case CLASS_TEMPLEKNIGHT:
 		return summon_specific((pet ? -1 : 0), y, x, level * 2, SUMMON_TEMPLES, (mode | PM_ALLOW_UNIQUE));
 	case CLASS_WHITEKNIGHT:
 		return summon_specific((pet ? -1 : 0), y, x, level * 2, SUMMON_ZENOBIAN_FORCES, (mode | PM_ALLOW_UNIQUE));
@@ -5505,6 +5510,9 @@ void reincarnation(void)
 	char buf[80];
 	cexp_info_type *cexp_ptr;
 
+	/* Reserve transformations must not alter shared effects or the world. */
+	if (!party_training)
+	{
 	if (p_ptr->singing)
 	{
 		if (p_ptr->singing == MUSIC_SILENT) song_of_silence(0);
@@ -5525,6 +5533,7 @@ void reincarnation(void)
 
 	dispel_player();
 	set_action(ACTION_NONE);
+	}
 
 	for (i = 0; i < A_MAX; i++)
 	{
@@ -5612,7 +5621,7 @@ void reincarnation(void)
 	p_ptr->s_ptr = &s_info[p_ptr->pclass];
 	cexp_ptr = &p_ptr->cexp_info[p_ptr->pclass];
 
-	change_level99_quest(FALSE);
+	if (!party_training) change_level99_quest(FALSE);
 
 	cexp_ptr->max_clev = cexp_ptr->clev = 1;
 	if (!cexp_ptr->max_max_clev) cexp_ptr->max_max_clev = 1;
@@ -5621,6 +5630,13 @@ void reincarnation(void)
 
 	/* Alignment change */
 	change_alignment_lnc();
+
+    if (party_training)
+    {
+        if (p_ptr->reincarnate_cnt < MAX_SHORT) p_ptr->reincarnate_cnt++;
+        p_ptr->expfact = MIN(rp_ptr->r_exp + 10 * p_ptr->reincarnate_cnt, 500);
+        return;
+    }
 
 	/* Update stuff */
 	p_ptr->update |= (PU_BONUS | PU_HP | PU_MANA | PU_SPELLS);

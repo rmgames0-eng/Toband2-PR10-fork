@@ -1,6 +1,6 @@
 
                   ***************************************
-                  **            TOband2 X.X.X          **
+                  **             TOband-R3             **
                   ***************************************
 
           Based on Moria:    Copyright (c) 1985 Robert Alan Koeneke
@@ -13,9 +13,8 @@
        New ZAngband code:    Robert Ruehlmann < rr9@thangorodrim.net >
     ZAngband 2.3.0 - ???:    The ZAngband DevTeam
        ZAngband 日本語版:    板倉充洋 < m-itakura@geocities.co.jp >
-                変愚蛮怒:    Mr.hoge (echizen＠users.sourceforge.jp) & 多くの方々
+               変愚蛮怒:    Mr.hoge (echizen＠users.sourceforge.jp) & 多くの方々
+                TOband2: TOband検討委員会
+              TOband-R3: れんどる
 
-
-               TOband2: TOband検討委員会
-                     http://toband.sourceforge.jp/
-             バグ情報などは上記 URL にある掲示板へお願いします。
+              ページ: https://toband-wiki.duckdns.org/

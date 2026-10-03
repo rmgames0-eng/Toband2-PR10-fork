@@ -5123,11 +5123,13 @@ size_t my_strcpy(char *buf, const char *src, size_t bufsize)
 	const char *s = src;
 	size_t len = 0;
 
+	if (bufsize == 0) return strlen(src);
+
 	/* reserve for NUL termination */
 	bufsize--;
 
 	/* Copy as many bytes as will fit */
-	while (len < bufsize)
+	while (*s && len < bufsize)
 	{
 		if (iskanji(*s))
 		{

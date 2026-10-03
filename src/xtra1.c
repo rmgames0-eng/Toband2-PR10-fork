@@ -12,6 +12,7 @@
  */
 
 #include "angband.h"
+#include "party.h"
 
 
 
@@ -211,6 +212,75 @@ static void prt_dungeon(void)
 }
 
 
+
+
+/* Negative coordinates select the player grid outside look/target mode. */
+static int floor_display_y = -1, floor_display_x = -1;
+
+/* Current grid information, confined to the sidebar above the status line. */
+static void prt_floor(void)
+{
+	int wid, hgt, row, i, feat;
+	s16b elem = get_cur_pelem();
+	int y = floor_display_y < 0 ? py : floor_display_y;
+	int x = floor_display_x < 0 ? px : floor_display_x;
+	cave_type *c_ptr;
+	char buf[32];
+#ifdef JP
+	cptr labels[] = {"火", "水", "地", "風"};
+#else
+	cptr labels[] = {"F", "A", "E", "W"};
+#endif
+
+    /* The borrowed caster must not replace the controlled character's sidebar. */
+    if (party_casting) return;
+
+	Term_get_size(&wid, &hgt);
+	for (row = ROW_DUNGEON + 1; row <= ROW_DUNGEON + 6 && row < hgt - 1; row++)
+		Term_erase(0, row, COL_MAP);
+	if (ROW_DUNGEON + 2 < hgt - 1)
+    {
+        c_put_str(TERM_WHITE, "Element :", ROW_DUNGEON + 2, 0);
+        c_put_str(elem_attr(elem), (elem >= MIN_ELEM && elem < ELEM_NUM) ?
+            labels[elem] : "-", ROW_DUNGEON + 2, 9);
+    }
+    if (ROW_DUNGEON + 4 >= hgt - 1 || p_ptr->wild_mode || !in_bounds2(y, x)) return;
+
+	c_ptr = &cave[y][x];
+	feat = c_ptr->mimic ? c_ptr->mimic : f_info[c_ptr->feat].mimic;
+	if (!(c_ptr->info & CAVE_MARK) && !player_can_see_bold(y, x)) return;
+	if (feat == FEAT_NONE) return;
+    for (i = 0; i < 2; i++)
+    {
+        int value = i ? f_info[feat].to_defence : f_info[feat].to_offence;
+#ifdef JP
+        cptr label = i ? "防" : "攻";
+#else
+        cptr label = i ? "D" : "A";
+#endif
+        c_put_str(TERM_WHITE, label, ROW_DUNGEON + 4, i * 6);
+        sprintf(buf, "%+03d", value);
+        c_put_str(value < 0 ? TERM_SLATE : TERM_WHITE, buf,
+            ROW_DUNGEON + 4, i * 6 + strlen(label));
+    }
+    for (i = ELEM_FIRE; i <= ELEM_WIND; i++)
+    {
+        row = ROW_DUNGEON + 5 + i / 2;
+        if (row >= hgt - 1) continue;
+        c_put_str(elem_attr(i), labels[i], row, (i % 2) * 6);
+        sprintf(buf, "%+03d", c_ptr->elem[i]);
+        c_put_str(c_ptr->elem[i] < 0 ? TERM_SLATE : TERM_WHITE, buf,
+            row, (i % 2) * 6 + strlen(labels[i]));
+    }
+}
+
+
+void display_floor_grid(int y, int x)
+{
+	floor_display_y = y;
+	floor_display_x = x;
+	prt_floor();
+}
 
 
 /*
@@ -672,78 +742,31 @@ static void prt_status(void)
 /*
  * Prints "title", including "wizard" or "winner" as needed.
  */
+/* Keep sidebar text within 13 columns, preserving Japanese characters. */
+static void prt_sidebar_field(cptr text, int row, int col)
+{
+	char name[14];
+	int len = 0;
+
+	while (text[len])
+	{
+		int width = 1;
+#ifdef JP
+		if (iskanji(text[len])) width = 2;
+#endif
+		if (len + width > 13) break;
+		if (width == 2 && !text[len + 1]) break;
+		len += width;
+	}
+	memcpy(name, text, len);
+	name[len] = 0;
+	prt_field(name, row, col);
+}
+
+
 static void prt_title(void)
 {
-	cptr p = "";
-	char str[14];
-
-	/* Wizard */
-	if (p_ptr->wizard)
-	{
-#ifdef JP
-		/* 英日切り替え機能 称号 */
-		p = "[ウィザード]";
-#else
-		p = "[=-WIZARD-=]";
-#endif
-
-	}
-
-	/* Legendary Ogre */
-	else if (!r_info[MON_FILARHH].max_num)
-	{
-#ifdef JP
-		p = "伝説のオウガ";
-#else
-		p = "**TrueOgre**";
-#endif
-
-	}
-
-	/* Winner */
-	else if (p_ptr->total_winner || (p_ptr->lev > PY_MAX_LEVEL))
-	{
-		if ((p_ptr->arena_number > MAX_ARENA_MONS+4) && (p_ptr->arena_number < 99))
-		{
-#ifdef JP
-			/* 英日切り替え機能 称号 */
-			p = "*真・勝利者*";
-
-#else
-			p = "*TRUEWINNER*";
-#endif
-		}
-		else
-		{
-#ifdef JP
-			/* 英日切り替え機能 称号 */
-			p = "***勝利者***";
-
-#else
-			p = "***WINNER***";
-#endif
-		}
-	}
-
-	/* Hack -- Vampire at daytime */
-	else if (pclass_is_(CLASS_VAMPIRE) && (p_ptr->cexp_info[CLASS_VAMPIRE].clev < 40) && is_daytime())
-	{
-#ifdef JP
-		/* 英日切り替え */
-		p = "[棺桶]";
-#else
-		p = "[Casket]";
-#endif
-	}
-
-	/* Normal */
-	else
-	{
-		my_strcpy(str, c_text + class_info[p_ptr->pclass].title[(p_ptr->cexp_info[p_ptr->pclass].clev - 1) / 5], sizeof(str));
-		p = str;
-	}
-
-	prt_field(p, ROW_TITLE, COL_TITLE);
+	prt_sidebar_field(c_name + cp_ptr->name, ROW_TITLE, COL_TITLE);
 }
 
 
@@ -1007,6 +1030,7 @@ static void prt_depth(void)
 	int wid, hgt, row_depth, col_depth;
 	byte attr = TERM_SLATE;
 
+
 	Term_get_size(&wid, &hgt);
 	col_depth = wid + COL_DEPTH;
 	row_depth = hgt + ROW_DEPTH;
@@ -1061,6 +1085,8 @@ static void prt_depth(void)
 		case 10: attr = TERM_WHITE;   break; /* Boring place */
 		}
 	}
+
+    prt_floor();
 
 	/* Right-Adjust the "depth", and clear old values */
 	c_prt(attr, format("%7s", depths), row_depth, col_depth);
@@ -1591,17 +1617,7 @@ static void prt_frame_basic(void)
 {
 	int i;
 
-	/* Race and Class */
-	if (!(cp_ptr->c_flags & PCF_REINCARNATE))
-	{
-		char str[14];
-		my_strcpy(str, p_name + rp_ptr->name, sizeof(str));
-		prt_field(str, ROW_RACE, COL_RACE);
-	}
-	else
-	{
-		prt_field("             ", ROW_RACE, COL_RACE);
-	}
+	prt_sidebar_field(player_name, ROW_RACE, COL_RACE);
 /*	prt_field(cp_ptr->title, ROW_CLASS, COL_CLASS); */
 
 
@@ -1924,6 +1940,117 @@ static void fix_dungeon(void)
 /*
  * Hack -- display monster recall in sub-windows
  */
+/* Inspired by Hengband's fix_monster_list / target_sensing_monsters_prepare:
+ * https://github.com/hengband/hengband/blob/master/src/window/display-sub-windows.cpp
+ * Group apparent races, exclude pets, and do not reveal unknown levels.
+ */
+typedef struct visible_monster_group {
+	int race, count, awake;
+} visible_monster_group;
+
+static int compare_visible_monsters(const void *a, const void *b)
+{
+	const visible_monster_group *x = a, *y = b;
+	monster_race *rx = &r_info[x->race], *ry = &r_info[y->race];
+	int ux = !!(rx->flags1 & RF1_UNIQUE), uy = !!(ry->flags1 & RF1_UNIQUE);
+	if (ux != uy) return uy - ux;
+	if (!!rx->r_tkills != !!ry->r_tkills) return !!rx->r_tkills - !!ry->r_tkills;
+	if (rx->r_tkills && ry->r_tkills && rx->level != ry->level) return ry->level - rx->level;
+	return y->race - x->race;
+}
+
+/* Term_putstr's byte limit can split a Japanese character. */
+static void monster_list_text(int x, int y, int width, byte attr, cptr text)
+{
+	int len = 0;
+	if (width <= 0) return;
+	while (text[len])
+	{
+		int step = 1;
+#ifdef JP
+		if (iskanji(text[len])) step = 2;
+#endif
+		if (len + step > width || (step == 2 && !text[len + 1])) break;
+		len += step;
+	}
+	if (len) Term_putstr(x, y, len, attr, text);
+}
+
+static void fix_monster_list(void)
+{
+	visible_monster_group *groups;
+	int i, k, j, count = 0;
+	term *old = Term;
+	C_MAKE(groups, m_max, visible_monster_group);
+	if (!p_ptr->image)
+	{
+		for (i = 1; i < m_max; i++)
+		{
+			monster_type *m_ptr = &m_list[i];
+			int race = m_ptr->ap_r_idx;
+			if (!m_ptr->r_idx || !m_ptr->ml || is_pet(m_ptr) || !race) continue;
+			for (k = 0; k < count; k++) if (groups[k].race == race) break;
+			if (k == count) { groups[k].race = race; count++; }
+			groups[k].count++;
+			if (!MON_CSLEEP(m_ptr)) groups[k].awake++;
+		}
+	}
+	qsort(groups, count, sizeof(*groups), compare_visible_monsters);
+	for (j = 1; j < 8; j++)
+	{
+		int w, h, rows, y;
+		if (!angband_term[j] || !(window_flag[j] & PW_MONLIST)) continue;
+		Term_activate(angband_term[j]);
+		Term_get_size(&w, &h);
+		/* Preserve terminal diffing instead of forcing a full-window repaint. */
+		for (y = 0; y < h; y++) Term_erase(0, y, w);
+		if (!count)
+		{
+#ifdef JP
+			monster_list_text(0, 0, w, TERM_SLATE, p_ptr->image ? "幻覚で見分けられない" : "モンスターはいない");
+#else
+			monster_list_text(0, 0, w, TERM_SLATE, p_ptr->image ? "Hallucinating" : "No visible monsters");
+#endif
+		}
+		rows = count > h ? h - 1 : count;
+		for (i = 0; i < rows; i++)
+		{
+			monster_race *r_ptr = &r_info[groups[i].race];
+			char buf[128], num[16], level[16];
+			if (r_ptr->flags1 & RF1_UNIQUE) strcpy(num, "U");
+			else sprintf(num, "%d", groups[i].count);
+			if (r_ptr->r_tkills) sprintf(level, "%d", r_ptr->level);
+			else strcpy(level, "??");
+#ifdef JP
+			sprintf(buf, "%3s(覚%2d) ", num, groups[i].awake);
+#else
+			sprintf(buf, "%3s(%2d) ", num, groups[i].awake);
+#endif
+			k = strlen(buf);
+			monster_list_text(0, i, w, TERM_WHITE, buf);
+			if (k < w) Term_putch(k, i, r_ptr->d_attr, r_ptr->d_char);
+			sprintf(buf, " %2s ", level);
+			monster_list_text(k + 1, i, w - k - 1, TERM_WHITE, buf);
+			k += 1 + strlen(buf);
+			monster_list_text(k, i, w - k, TERM_WHITE, r_name + r_ptr->name);
+		}
+		if (count > h)
+		{
+			char buf[80];
+#ifdef JP
+			sprintf(buf, "ほか %d 種類", count - rows);
+#else
+			sprintf(buf, "%d more types", count - rows);
+#endif
+			monster_list_text(0, h - 1, w, TERM_SLATE, buf);
+		}
+		Term_fresh();
+	}
+	Term_activate(old);
+	C_FREE(groups, m_max, visible_monster_group);
+}
+
+
 static void fix_monster(void)
 {
 	int j;
@@ -2534,6 +2661,23 @@ void player_flags(u32b flgs[TR_FLAG_SIZE])
 		}
 		else if (cexp_ptr->clev < 40) add_flag(flgs, TR_SPEED);
 		break;
+	case CLASS_DARK_ELEMENT:
+        /* Element and its opposite share a pair of elemental immunities.
+         * Use the current element so Collectio and temporary effects agree. */
+        switch (get_cur_pelem())
+        {
+            case ELEM_FIRE:
+            case ELEM_AQUA:
+                add_flag(flgs, TR_IM_FIRE);
+                add_flag(flgs, TR_IM_COLD);
+                break;
+            case ELEM_EARTH:
+            case ELEM_WIND:
+                add_flag(flgs, TR_IM_ACID);
+                add_flag(flgs, TR_IM_ELEC);
+                break;
+        }
+        break;
 	case CLASS_ELEMENTALER:
 	{
 		switch (get_cur_pelem())
@@ -2797,6 +2941,7 @@ void calc_bonuses(void)
 
 	/* Start with a single shot per turn */
 	p_ptr->num_fire = 100;
+	p_ptr->num_fire += 50 * party_cooperation_count(PARTY_ROLE_SHOOT);
 
 	/* Reset the "xtra" tval */
 	p_ptr->tval_xtra = 0;
@@ -2814,7 +2959,7 @@ void calc_bonuses(void)
 	p_ptr->impact[1] = FALSE;
 	p_ptr->pass_wall = FALSE;
 	p_ptr->wraith_form_perm = FALSE;
-	p_ptr->kill_wall = FALSE;
+	p_ptr->kill_wall = pclass_is_(CLASS_RELICSKNIGHT);
 	p_ptr->dec_mana = FALSE;
 	p_ptr->easy_spell = FALSE;
 	p_ptr->heavy_spell = FALSE;
@@ -4606,6 +4751,7 @@ void calc_bonuses(void)
 			}
 			break;
 
+		case CLASS_TEMPLECOMMAND:
 		case CLASS_TEMPLEKNIGHT:
 			if (have_flag(flgs, TR_UNHOLY))
 			{
@@ -5383,6 +5529,7 @@ void update_stuff(void)
 	{
 		p_ptr->update &= ~(PU_BONUS);
 		calc_bonuses();
+		p_ptr->redraw |= PR_DEPTH; /* Current element can change with bonuses. */
 	}
 
 	if (p_ptr->update & (PU_TORCH))
@@ -5434,6 +5581,7 @@ void update_stuff(void)
 	{
 		p_ptr->update &= ~(PU_VIEW);
 		update_view();
+		p_ptr->redraw |= PR_FLOOR;
 	}
 
 	if (p_ptr->update & (PU_LITE))
@@ -5491,6 +5639,20 @@ void redraw_stuff(void)
 
 
 
+    /* Spell logic temporarily borrows a reserve's player data. Keep the
+     * controlled character's status on screen; only the map animates here.
+     * Leave character redraw flags pending until the controlled actor returns. */
+    if (party_casting)
+    {
+        if (p_ptr->redraw & PR_MAP)
+        {
+            p_ptr->redraw &= ~PR_MAP;
+            prt_map();
+            p_ptr->redraw |= PR_FLOOR;
+        }
+        return;
+    }
+
 	/* Hack -- clear the screen */
 	if (p_ptr->redraw & (PR_WIPE))
 	{
@@ -5504,6 +5666,7 @@ void redraw_stuff(void)
 	{
 		p_ptr->redraw &= ~(PR_MAP);
 		prt_map();
+		p_ptr->redraw |= PR_FLOOR;
 	}
 
 
@@ -5518,6 +5681,13 @@ void redraw_stuff(void)
 		prt_time();
 		prt_dungeon();
 		prt_weather();
+		p_ptr->redraw |= PR_FLOOR;
+	}
+
+	if (p_ptr->redraw & PR_FLOOR)
+	{
+		p_ptr->redraw &= ~PR_FLOOR;
+		prt_floor();
 	}
 
 	if (p_ptr->redraw & (PR_DUNGEON))
@@ -5534,10 +5704,7 @@ void redraw_stuff(void)
 	if (p_ptr->redraw & (PR_MISC))
 	{
 		p_ptr->redraw &= ~(PR_MISC);
-		if (!(cp_ptr->c_flags & PCF_REINCARNATE))
-			prt_field(p_name + rp_ptr->name, ROW_RACE, COL_RACE);
-		else
-			prt_field("             ", ROW_RACE, COL_RACE);
+		prt_sidebar_field(player_name, ROW_RACE, COL_RACE);
 		/* prt_field(cp_ptr->title, ROW_CLASS, COL_CLASS); */
 
 	}
@@ -5674,6 +5841,10 @@ void window_stuff(void)
 	int j;
 
 	u32b mask = 0L;
+	if (party_training) return;
+
+	/* Refresh counts and sleep state whenever subwindows are serviced. */
+	p_ptr->window |= PW_MONLIST;
 
 
 	/* Nothing to do */
@@ -5692,6 +5863,12 @@ void window_stuff(void)
 	/* Nothing to do */
 	if (!p_ptr->window) return;
 
+
+	if (p_ptr->window & PW_MONLIST)
+	{
+		p_ptr->window &= ~PW_MONLIST;
+		fix_monster_list();
+	}
 
 	/* Display inventory */
 	if (p_ptr->window & (PW_INVEN))
@@ -5770,7 +5947,7 @@ void handle_stuff(void)
 	if (p_ptr->redraw) redraw_stuff();
 
 	/* Window stuff */
-	if (p_ptr->window) window_stuff();
+	window_stuff();
 }
 
 

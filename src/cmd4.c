@@ -4577,7 +4577,7 @@ void do_cmd_note(void)
 void do_cmd_version(void)
 {
 	/* Silly message */
-	msg_format("TOband2 %d.%d.%d(%s)",
+	msg_format("TOband-R3 %d.%d.%d(%s)",
 	            T_VER_MAJOR, T_VER_MINOR, T_VER_PATCH, T_BUILD);
 }
 

@@ -77,3 +77,71 @@
 ## 修正追記（2026-09-23）
 
 B1・B2・B3はユーザー指示により修正済み。交代先の魔法領域を再構築し、拒否時には元の領域表を復元する。加入時も共有の職業領域表を維持する。沈黙の歌の敵側効果は交代成功時に解除する。死亡後の鑑定対象に控え装備を加えた。実データの巫女間交代・敵の沈黙解除・控え装備鑑定と、拒否時の副作用なしを回帰テストで確認した。仕様見直し候補と既存の蘇生ルールは変更していない。
+
+
+## 2026-09-23: Additional existing-function audit
+
+Reviewed XP/level growth, training isolation, party switching/save round trips,
+home menu composition/keymaps, monster subwindow redraw, string copying, and
+cursed equipment removal. This is a targeted source and regression-test audit,
+not a claim that every game behavior is free of bugs.
+
+Fixed in this pass:
+
+- Japanese `my_strcpy` copied beyond the first NUL when the destination was
+  larger than the source; size zero also underflowed. Stop at NUL and handle
+  zero capacity. Tests cover source length, untouched tail, zero/one-byte
+  buffers and a Japanese character at the truncation boundary.
+- `do_cmd_takeoff` rejected every cursed item because mutually exclusive
+  class exclusions were ORed. Terror/Relics Knight can now reach the existing
+  probabilistic removal branch for non-permanent curses. Permanent curses and
+  other classes remain rejected; the production gate is tested for all classes.
+- Home recruitment/page labels used end-of-line clearing after the other
+  columns had been drawn, erasing examine/class-change/drop hints. Use bounded
+  text output; actual home command-loop tests verify surviving labels.
+- Monster-list refresh forced full terminal clears even if content was
+  unchanged. Preserve the terminal's diff-based redraw and verify that a
+  repeated unchanged update does not issue a full-clear request. No measured
+  overall performance claim is made.
+- Roguelike `T` already means take off equipment. Show the supported keymap
+  bypass `\T` for training in that mode and preserve the existing binding.
+  Actual request-command tests verify both inputs.
+
+Validation: party integration (birth, training, UI, old/new saves), party unit
+round trips at O0/O2, gunner repeated-ammo/resource tests, monster EXP tests,
+and curse-gate tests. Public ZIP, release and spoiler were not updated.
+
+Previously documented unresolved gameplay decisions (score representative,
+shared resurrection/quest-faction semantics, donation scaling, etc.) are not
+silently changed by this pass.
+
+
+## 2026-09-23: Second existing-function audit (numeric and table boundaries)
+
+Reviewed experience addition/drain recovery, race/class selection conditions,
+weapon-type masks, special-blow weapon lists and status-timer bounds. No balance
+changes were made to class eligibility requirements or timer durations.
+
+Fixed:
+- `gain_class_exp` / `gain_racial_exp` added in signed 32-bit arithmetic before
+  the level checker clamped the result. A very large positive award with
+  existing experience wrapped negative and was then clamped to zero. Saturate
+  before addition, also bound drain-recovery history, and reject negative XP
+  awards. Ordinary awards and the existing 20 percent recovery rule remain.
+  Win32 tests cover zero, normal, cap-adjacent, capped and INT32_MAX awards;
+  the original implementation fails the same test.
+- `weapon_type_bit(WT_NONE)` shifted by -1 (undefined behavior); other invalid
+  types could produce spurious mask bits. Invalid/no-weapon types now produce
+  zero and all 15 real weapon types retain their masks.
+- Three special-blow weapon-list loops included MAX_WT even though the name
+  table has indices 0..MAX_WT-1. Stop before MAX_WT. Existing valid masks normally
+  hide the extra iteration; this was a latent out-of-bounds access path.
+- The female-only birth filter tested complete flag equality, unlike the male
+  bit test. Use a bit test so the restriction survives additional race traits.
+  This is latent for the currently defined Gorgon restriction flags; tests
+  exercise both sexes against all 256 flag combinations.
+
+Verified: full Windows build; boundary suite at O0/O2; real-data party/birth/
+training/home/save integration; party codec/switching unit suite; gunner ammo;
+monster XP; curse-removal gates. Standard build/party/TOband.exe updated.
+The absence of other failures in this scope does not prove the whole game bug-free.

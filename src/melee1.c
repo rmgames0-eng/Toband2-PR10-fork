@@ -1979,6 +1979,11 @@ bool make_attack_normal(int m_idx)
 
 					ACTIVATE_MULTISHADOW();
 					if (p_ptr->immune_holy) damage = 0;
+					else if (pclass_is_(CLASS_DARK_ELEMENT))
+					{
+						damage /= 2;
+						if (p_ptr->ogre_equip) damage *= 2;
+					}
 					else if ((get_your_alignment_gne() == ALIGN_GNE_EVIL) || p_ptr->ogre_equip || (prace_is_(RACE_GHOST)) || (prace_is_(RACE_SKELETON)))
 					{
 #ifdef JP

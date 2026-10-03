@@ -12,6 +12,71 @@
 
 #include "angband.h"
 
+/* Both hidden realms allow ordinary recall and unconditional gate return. */
+static bool activate_chaos_gate(void)
+{
+    int target, depth, i;
+    bool entering_heaven = FALSE;
+    cave_type *c_ptr = &cave[py][px];
+    if (astral_mode) { msg_print("何も起こらなかった。"); return FALSE; }
+    if (dungeon_type == DUNGEON_HEAVEN)
+    {
+        target = DUNGEON_HEAVEN_WAY;
+        depth = d_info[target].maxdepth;
+    }
+    else if (dungeon_type == DUNGEON_DEMON)
+    {
+        target = DUNGEON_RUINS;
+        depth = d_info[target].maxdepth;
+    }
+    else if (IN_DEMON_GATE() && IS_DEMON_GATE(c_ptr))
+    {
+        target = DUNGEON_DEMON;
+        depth = d_info[target].mindepth;
+    }
+    else if (IN_HEAVEN_GATE() && c_ptr->mimic == FEAT_FLOOR &&
+        (c_ptr->feat == FEAT_GRASS || c_ptr->feat == FEAT_DEEP_GRASS))
+    {
+        target = DUNGEON_HEAVEN;
+        depth = d_info[target].mindepth;
+        entering_heaven = TRUE;
+    }
+    else
+    {
+        msg_print("この剣はカオスゲートの上で発動しなければならない。");
+        return FALSE;
+    }
+    if (!get_check(format("%s%d階へ移動します。よろしいですか？", d_name + d_info[target].name, depth))) return FALSE;
+    if (entering_heaven)
+    {
+        int old_inside_quest = p_ptr->inside_quest;
+        for (i = QUEST_FELLANA; i <= QUEST_FILARHH; i++)
+        {
+            if (quest[i].status != QUEST_STATUS_UNTAKEN) continue;
+            init_flags = INIT_ASSIGN;
+            p_ptr->inside_quest = i;
+            process_dungeon_file("q_info.txt", 0, 0, 0, 0);
+            quest[i].status = QUEST_STATUS_TAKEN;
+        }
+        p_ptr->inside_quest = old_inside_quest;
+    }
+    back_from_heaven = (dungeon_type == DUNGEON_HEAVEN);
+    dungeon_type = target;
+    dun_level = depth;
+    p_ptr->oldpx = px; p_ptr->oldpy = py;
+    if (record_stair)
+    {
+        char buf[160];
+        sprintf(buf, "カオスゲートを通って%sの%d階に移動した。", d_name + d_info[target].name, depth);
+        do_cmd_write_nikki(NIKKI_RECALL, 0, buf);
+    }
+    msg_format("あなたは%s%d階に降り立った。", d_name + d_info[target].name, depth);
+    prepare_change_floor_mode((target == DUNGEON_RUINS || target == DUNGEON_HEAVEN_WAY) ? 0 : CFM_RAND_PLACE);
+    p_ptr->leaving = TRUE;
+    return TRUE;
+}
+
+
 
 /*
  * This file includes code for eating food, drinking potions,
@@ -1771,28 +1836,28 @@ static void do_cmd_read_scroll_aux(int item, bool known)
 		case SV_SCROLL_ELEM_FIRE:
 		{
 			ident = TRUE;
-			inc_area_elem(0, ELEM_FIRE, 5, -2, TRUE);
+			inc_area_elem(0, ELEM_FIRE, 50, -2, TRUE);
 			break;
 		}
 
 		case SV_SCROLL_ELEM_AQUA:
 		{
 			ident = TRUE;
-			inc_area_elem(0, ELEM_AQUA, 5, -2, TRUE);
+			inc_area_elem(0, ELEM_AQUA, 50, -2, TRUE);
 			break;
 		}
 
 		case SV_SCROLL_ELEM_EARTH:
 		{
 			ident = TRUE;
-			inc_area_elem(0, ELEM_EARTH, 5, -2, TRUE);
+			inc_area_elem(0, ELEM_EARTH, 50, -2, TRUE);
 			break;
 		}
 
 		case SV_SCROLL_ELEM_WIND:
 		{
 			ident = TRUE;
-			inc_area_elem(0, ELEM_WIND, 5, -2, TRUE);
+			inc_area_elem(0, ELEM_WIND, 50, -2, TRUE);
 			break;
 		}
 	}
@@ -3309,28 +3374,28 @@ static int rod_effect(int sval, int dir, bool *use_charge)
 
 		case SV_ROD_ELEM_FIRE:
 		{
-			inc_area_elem(0, ELEM_FIRE, 6, 2, TRUE);
+			inc_area_elem(0, ELEM_FIRE, 60, 2, TRUE);
 			ident = TRUE;
 			break;
 		}
 
 		case SV_ROD_ELEM_AQUA:
 		{
-			inc_area_elem(0, ELEM_AQUA, 6, 2, TRUE);
+			inc_area_elem(0, ELEM_AQUA, 60, 2, TRUE);
 			ident = TRUE;
 			break;
 		}
 
 		case SV_ROD_ELEM_EARTH:
 		{
-			inc_area_elem(0, ELEM_EARTH, 6, 2, TRUE);
+			inc_area_elem(0, ELEM_EARTH, 60, 2, TRUE);
 			ident = TRUE;
 			break;
 		}
 
 		case SV_ROD_ELEM_WIND:
 		{
-			inc_area_elem(0, ELEM_WIND, 6, 2, TRUE);
+			inc_area_elem(0, ELEM_WIND, 60, 2, TRUE);
 			ident = TRUE;
 			break;
 		}
@@ -3897,6 +3962,17 @@ static void do_cmd_activate_aux(int item)
 		/* Choose effect */
 		switch (o_ptr->name1)
 		{
+			case ART_ARCHANGEL_WINGS:
+				(void)hp_player(500);
+				o_ptr->timeout = 250;
+				break;
+
+            case ART_DREAM_CROWN:
+                /* Use the upright Emperor card's effect, including its duration. */
+                (void)activate_tarot_power(7);
+                o_ptr->timeout = 250;
+                break;
+
 			case ART_LEGACY:
 			{
 #ifdef JP
@@ -4508,103 +4584,11 @@ static void do_cmd_activate_aux(int item)
 				break;
 			}
 
-			case ART_BRUNHILD:
-			{
-				cave_type *c_ptr = &cave[py][px];
-
-				if (astral_mode)
-				{
-#ifdef JP
-					msg_print("何も起こらなかった。");
-#else
-					msg_print("Nothing happens.");
-#endif
-					return;
-				}
-
-				if (dungeon_type == DUNGEON_HEAVEN)
-				{
-					if (quest[QUEST_FILARHH].status == QUEST_STATUS_FINISHED)
-					{
-						if (!get_check("天界への道へ帰還します。よろしいですか？")) return;
-
-						dungeon_type = DUNGEON_HEAVEN_WAY;
-						dun_level = d_info[dungeon_type].maxdepth;
-
-						msg_format("…あなたは天界への道%d階に降り立った。", dun_level);
-
-						/* Save player position */
-						p_ptr->oldpx = px;
-						p_ptr->oldpy = py;
-
-						if (record_stair)
-						{
-							char buf[160];
-							sprintf(buf, "カオスゲートを通って%sの%d階に移動した。", d_name+d_info[dungeon_type].name, dun_level);
-							do_cmd_write_nikki(NIKKI_RECALL, 0, buf);
-						}
-
-						back_from_heaven = TRUE;
-						p_ptr->leaving = TRUE;
-					}
-					else
-					{
-						msg_print("ブリュンヒルドは力を失っている。");
-					}
-				}
-				else if (IN_HEAVEN_GATE() && (c_ptr->mimic == FEAT_FLOOR) &&
-					((c_ptr->feat == FEAT_GRASS) || (c_ptr->feat == FEAT_DEEP_GRASS)))
-				{
-					int old_inside_quest = p_ptr->inside_quest;
-					int i;
-					quest_type *q_ptr;
-
-					if (!get_check("カオスゲートが開いた！天界へ侵入しますか？")) return;
-					msg_print("あなたは天界へ降り立った…。");
-
-					for (i = QUEST_FELLANA; i <= QUEST_FILARHH; i++)
-					{
-						q_ptr = &quest[i];
-
-						if (q_ptr->status == QUEST_STATUS_UNTAKEN)
-						{
-							/* Init the heaven quest */
-							init_flags = INIT_ASSIGN;
-							p_ptr->inside_quest = i;
-
-							process_dungeon_file("q_info.txt", 0, 0, 0, 0);
-
-							quest[i].status = QUEST_STATUS_TAKEN;
-						}
-					}
-
-					p_ptr->inside_quest = old_inside_quest;
-
-					dungeon_type = DUNGEON_HEAVEN;
-					dun_level = d_info[dungeon_type].mindepth;
-
-					/* Save player position */
-					p_ptr->oldpx = px;
-					p_ptr->oldpy = py;
-
-					if (record_stair)
-					{
-						char buf[160];
-						sprintf(buf, "カオスゲートを通って%sの%d階に移動した。", d_name+d_info[dungeon_type].name, dun_level);
-						do_cmd_write_nikki(NIKKI_RECALL, 0, buf);
-					}
-
-					prepare_change_floor_mode(CFM_RAND_PLACE);
-
-					p_ptr->leaving = TRUE;
-				}
-				else
-				{
-					msg_print("この剣は天界への門の正しい位置で発動しなければならない。");
-				}
-
-				break;
-			}
+            case ART_BRUNHILD:
+            {
+                if (!activate_chaos_gate()) return;
+                break;
+            }
 
 			case ART_BOREAS:
 			{
@@ -5107,7 +5091,7 @@ static void do_cmd_activate_aux(int item)
 
 	if (o_ptr->name2 == EGO_BERTHA)
 	{
-		inc_area_elem(0, ELEM_EARTH, 5, -2, TRUE);
+		inc_area_elem(0, ELEM_EARTH, 50, -2, TRUE);
 		o_ptr->timeout = 50;
 
 		/* Window stuff */
@@ -5120,7 +5104,7 @@ static void do_cmd_activate_aux(int item)
 
 	if (o_ptr->name2 == EGO_HAHNELA)
 	{
-		inc_area_elem(0, ELEM_WIND, 5, -2, TRUE);
+		inc_area_elem(0, ELEM_WIND, 50, -2, TRUE);
 		o_ptr->timeout = 50;
 
 		/* Window stuff */
@@ -5133,7 +5117,7 @@ static void do_cmd_activate_aux(int item)
 
 	if (o_ptr->name2 == EGO_ZOSHONELL)
 	{
-		inc_area_elem(0, ELEM_FIRE, 5, -2, TRUE);
+		inc_area_elem(0, ELEM_FIRE, 50, -2, TRUE);
 		o_ptr->timeout = 50;
 
 		/* Window stuff */
@@ -5146,7 +5130,7 @@ static void do_cmd_activate_aux(int item)
 
 	if (o_ptr->name2 == EGO_GRUZA)
 	{
-		inc_area_elem(0, ELEM_AQUA, 5, -2, TRUE);
+		inc_area_elem(0, ELEM_AQUA, 50, -2, TRUE);
 		o_ptr->timeout = 50;
 
 		/* Window stuff */

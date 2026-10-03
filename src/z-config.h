@@ -413,7 +413,7 @@
  * OPTION: Person to bother if something goes wrong.
  */
 /* #define MAINTAINER	"rr9@angband.org" */
-#define MAINTAINER	"TOband@egroups.co.jp"
+#define MAINTAINER	"れんどる"
 
 
 #ifdef JP

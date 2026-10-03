@@ -42,6 +42,9 @@
 #define FLG_ZENOBIAN        22
 #define FLG_LODIS           23
 #define FLG_METAL           24
+#define FLG_GOOD_OR_BETTER  25
+#define FLG_EXCELLENT_OR_BETTER 26
+#define FLG_UNKNOWN_QUALITY 27
 
 #define FLG_ITEMS           29
 #define FLG_WEAPONS         30
@@ -99,6 +102,9 @@ static char KEY_MORE_BONUS2[] = "以上の";
 static char KEY_ARTIFACT[] = "アーティファクト";
 static char KEY_EGO[] = "エゴ";
 static char KEY_GOOD[] = "上質の";
+static char KEY_GOOD_OR_BETTER[] = "上質以上の";
+static char KEY_EXCELLENT_OR_BETTER[] = "高級品以上の";
+static char KEY_UNKNOWN_QUALITY[] = "不明な品質の";
 static char KEY_NAMELESS[] = "無銘の";
 static char KEY_AVERAGE[] = "並の";
 static char KEY_WORTHLESS[] = "無価値の";
@@ -166,6 +172,9 @@ static char KEY_MORE_BONUS2[] = "";
 static char KEY_ARTIFACT[] = "artifact";
 static char KEY_EGO[] = "ego";
 static char KEY_GOOD[] = "good";
+static char KEY_GOOD_OR_BETTER[] = "good or better";
+static char KEY_EXCELLENT_OR_BETTER[] = "excellent or better";
+static char KEY_UNKNOWN_QUALITY[] = "unknown quality";
 static char KEY_NAMELESS[] = "nameless";
 static char KEY_AVERAGE[] = "average";
 static char KEY_WORTHLESS[] = "worthless";
@@ -397,6 +406,9 @@ static bool autopick_new_entry(autopick_type *entry, cptr str, bool allow_defaul
 
 		if (MATCH_KEY(KEY_WORTHLESS)) ADD_FLG(FLG_WORTHLESS);
 		if (MATCH_KEY(KEY_EGO)) ADD_FLG(FLG_EGO);
+		if (MATCH_KEY(KEY_GOOD_OR_BETTER)) ADD_FLG(FLG_GOOD_OR_BETTER);
+		if (MATCH_KEY(KEY_EXCELLENT_OR_BETTER)) ADD_FLG(FLG_EXCELLENT_OR_BETTER);
+		if (MATCH_KEY(KEY_UNKNOWN_QUALITY)) ADD_FLG(FLG_UNKNOWN_QUALITY);
 		if (MATCH_KEY(KEY_GOOD)) ADD_FLG(FLG_GOOD);
 		if (MATCH_KEY(KEY_NAMELESS)) ADD_FLG(FLG_NAMELESS);
 		if (MATCH_KEY(KEY_AVERAGE)) ADD_FLG(FLG_AVERAGE);
@@ -933,6 +945,9 @@ cptr autopick_line_from_entry(autopick_type *entry)
 	if (IS_FLG(FLG_LODIS)) ADD_KEY(KEY_LODIS);
 	if (IS_FLG(FLG_METAL)) ADD_KEY(KEY_METAL);
 	if (IS_FLG(FLG_WORTHLESS)) ADD_KEY(KEY_WORTHLESS);
+	if (IS_FLG(FLG_GOOD_OR_BETTER)) ADD_KEY(KEY_GOOD_OR_BETTER);
+	if (IS_FLG(FLG_EXCELLENT_OR_BETTER)) ADD_KEY(KEY_EXCELLENT_OR_BETTER);
+	if (IS_FLG(FLG_UNKNOWN_QUALITY)) ADD_KEY(KEY_UNKNOWN_QUALITY);
 	if (IS_FLG(FLG_GOOD)) ADD_KEY(KEY_GOOD);
 	if (IS_FLG(FLG_NAMELESS)) ADD_KEY(KEY_NAMELESS);
 	if (IS_FLG(FLG_AVERAGE)) ADD_KEY(KEY_AVERAGE);
@@ -1047,8 +1062,13 @@ static bool is_autopick_aux(object_type *o_ptr, autopick_type *entry, cptr o_nam
 	object_kind *k_ptr = &k_info[o_ptr->k_idx];
 
 	/*** Unidentified ***/
-	if (IS_FLG(FLG_UNIDENTIFIED)
-	    && (object_is_known(o_ptr) || (o_ptr->ident & IDENT_SENSE)))
+    /* Do not inspect hidden properties when quality is unknown. */
+    if (IS_FLG(FLG_UNKNOWN_QUALITY) &&
+        (object_is_known(o_ptr) ||
+         ((o_ptr->ident & IDENT_SENSE) && o_ptr->feeling != FEEL_NONE))) return FALSE;
+
+	/* Sensing quality is not full identification. */
+	if (IS_FLG(FLG_UNIDENTIFIED) && object_is_known(o_ptr))
 		return FALSE;
 
 	/*** Identified ***/
@@ -1133,6 +1153,33 @@ static bool is_autopick_aux(object_type *o_ptr, autopick_type *entry, cptr o_nam
 	{
 		if (!object_is_known(o_ptr) || !object_is_ego(o_ptr))
 			return FALSE;
+	}
+
+	/* Quality thresholds use only identified properties or the reported feeling. */
+	if (IS_FLG(FLG_GOOD_OR_BETTER) || IS_FLG(FLG_EXCELLENT_OR_BETTER))
+	{
+		int quality = 0;
+		if (!object_is_equipment(o_ptr)) return FALSE;
+		if (object_is_known(o_ptr))
+		{
+			if (!object_is_cursed(o_ptr) && !object_is_broken(o_ptr))
+			{
+				if (object_is_artifact(o_ptr)) quality = 3;
+				else if (object_is_ego(o_ptr)) quality = 2;
+				else if (o_ptr->tval != TV_RING && o_ptr->tval != TV_AMULET &&
+				         (o_ptr->to_a > 0 || o_ptr->to_h + o_ptr->to_d > 0)) quality = 1;
+			}
+		}
+		else if (o_ptr->ident & IDENT_SENSE)
+		{
+			switch (o_ptr->feeling)
+			{
+			case FEEL_GOOD: quality = 1; break;
+			case FEEL_EXCELLENT: quality = 2; break;
+			case FEEL_SPECIAL: quality = 3; break;
+			}
+		}
+		if (quality < (IS_FLG(FLG_EXCELLENT_OR_BETTER) ? 2 : 1)) return FALSE;
 	}
 
 	/*** Good ***/
@@ -1839,6 +1886,11 @@ void autopick_pickup_items(cave_type *c_ptr)
 
 		/* Sense the object */
 		sense_floor_object(this_o_idx);
+        /* Recheck an unknown-quality rule after floor sensing. */
+        if (old_idx >= 0 && have_flag(autopick_list[old_idx].flag, FLG_UNKNOWN_QUALITY) &&
+            (object_is_known(o_ptr) || ((o_ptr->ident & IDENT_SENSE) && o_ptr->feeling != FEEL_NONE)))
+            old_idx = -1;
+
 
 		idx = is_autopick(o_ptr);
 
@@ -2434,6 +2486,10 @@ static void describe_autopick(char *buff, autopick_type *entry)
 		body_str = "装備";
 	}
 
+	if (IS_FLG(FLG_GOOD_OR_BETTER)) before_str[before_n++] = KEY_GOOD_OR_BETTER;
+	if (IS_FLG(FLG_EXCELLENT_OR_BETTER)) before_str[before_n++] = KEY_EXCELLENT_OR_BETTER;
+	if (IS_FLG(FLG_UNKNOWN_QUALITY)) before_str[before_n++] = KEY_UNKNOWN_QUALITY;
+
 	/*** Good ***/
 	if (IS_FLG(FLG_GOOD))
 	{
@@ -2724,6 +2780,10 @@ static void describe_autopick(char *buff, autopick_type *entry)
 	{
 		before_str[before_n++] = "ego";
 	}
+
+	if (IS_FLG(FLG_GOOD_OR_BETTER)) before_str[before_n++] = KEY_GOOD_OR_BETTER;
+	if (IS_FLG(FLG_EXCELLENT_OR_BETTER)) before_str[before_n++] = KEY_EXCELLENT_OR_BETTER;
+	if (IS_FLG(FLG_UNKNOWN_QUALITY)) before_str[before_n++] = KEY_UNKNOWN_QUALITY;
 
 	/*** Good ***/
 	if (IS_FLG(FLG_GOOD))
@@ -3190,11 +3250,15 @@ static void toggle_keyword(text_body_type *tb, int flg)
 		}
 		
 		/* You can use only one flag in artifact/ego/nameless */
-		else if (FLG_ARTIFACT <= flg && flg <= FLG_AVERAGE)
+		else if ((FLG_ARTIFACT <= flg && flg <= FLG_AVERAGE) ||
+		         flg == FLG_GOOD_OR_BETTER || flg == FLG_EXCELLENT_OR_BETTER || flg == FLG_UNKNOWN_QUALITY)
 		{
 			int i;
 			for (i = FLG_ARTIFACT; i <= FLG_AVERAGE; i++)
 				REM_FLG(i);
+			REM_FLG(FLG_GOOD_OR_BETTER);
+			REM_FLG(FLG_EXCELLENT_OR_BETTER);
+			REM_FLG(FLG_UNKNOWN_QUALITY);
 		}
 		
 		/* You can use only one flag in rare/common */
@@ -4041,6 +4105,9 @@ static void search_for_string(text_body_type *tb, cptr search_str, bool forward)
 #define EC_KK_FANS             93
 #define EC_KK_BOWS             94
 #define EC_KK_GUNS             95
+#define EC_OK_GOOD_OR_BETTER   96
+#define EC_OK_EXCELLENT_OR_BETTER 97
+#define EC_OK_UNKNOWN_QUALITY 98
 
 
 /* Manu names */
@@ -4240,6 +4307,9 @@ command_menu_type menu_data[] =
 	{KEY_ARTIFACT, 1, -1, EC_OK_ARTIFACT},
 	{KEY_EGO, 1, -1, EC_OK_EGO},
 	{KEY_GOOD, 1, -1, EC_OK_GOOD},
+	{KEY_GOOD_OR_BETTER, 1, -1, EC_OK_GOOD_OR_BETTER},
+	{KEY_EXCELLENT_OR_BETTER, 1, -1, EC_OK_EXCELLENT_OR_BETTER},
+	{KEY_UNKNOWN_QUALITY, 1, -1, EC_OK_UNKNOWN_QUALITY},
 	{KEY_NAMELESS, 1, -1, EC_OK_NAMELESS},
 	{KEY_AVERAGE, 1, -1, EC_OK_AVERAGE},
 	{KEY_WORTHLESS, 1, -1, EC_OK_WORTHLESS},
@@ -6094,6 +6164,9 @@ static bool do_editor_command(text_body_type *tb, int com_id)
 	case EC_OK_ARTIFACT: toggle_keyword(tb, FLG_ARTIFACT); break;
 	case EC_OK_EGO: toggle_keyword(tb, FLG_EGO); break;
 	case EC_OK_GOOD: toggle_keyword(tb, FLG_GOOD); break;
+	case EC_OK_GOOD_OR_BETTER: toggle_keyword(tb, FLG_GOOD_OR_BETTER); break;
+	case EC_OK_EXCELLENT_OR_BETTER: toggle_keyword(tb, FLG_EXCELLENT_OR_BETTER); break;
+	case EC_OK_UNKNOWN_QUALITY: toggle_keyword(tb, FLG_UNKNOWN_QUALITY); break;
 	case EC_OK_NAMELESS: toggle_keyword(tb, FLG_NAMELESS); break;
 	case EC_OK_AVERAGE: toggle_keyword(tb, FLG_AVERAGE); break;
 	case EC_OK_RARE: toggle_keyword(tb, FLG_RARE); break;

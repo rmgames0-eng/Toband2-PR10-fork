@@ -653,7 +653,7 @@ A:3:100:2
 R:21:62
 Z:SUST_INT | SUST_WIS | SUST_CHR | DEC_MANA | RES_MAGIC | LEVITATION |
 M:MAGERY | FIRE | AQUA | EARTH | WIND | HOLY | DEATH |
-M:SYMBIOTIC | WITCH | DRAKONITE | CRUSADE
+M:SYMBIOTIC | WITCH | CRUSADE
 D:うぃっちは「ウィッチと同じ？失礼ね。一緒にしないでよ。アタシの方が美人だしグラマーだし（中略）
 D:人に何かを問いかけるときのようにちょっと尻上がりに発音するのがコツなの（はぁと）」です。
 D:このクラスはクラスチェンジできなくなります。魔法を唱えるのに必要な能力は知能です。
@@ -1066,8 +1066,8 @@ S:138:0:0:98:138:0
 G:05:00:00:03:05:00
 C:13:15:17:-5:1:4:0:90:32
 X:0:0:0:0:0:0:4:48:11
-I:50:7:0:135:0:12
-A:6:70:6
+I:50:12:0:135:0:12
+A:8:70:6
 R:21:60
 Z:SUST_STR | SUST_DEX | SUST_CON | HOLD_LIFE | REGEN | FEAR_FIELD |
 Z:FREE_ACT | RES_FEAR | RES_CONF | RES_STONE |
@@ -1144,3 +1144,56 @@ T:野伏頭
 T:野伏の総領
 
 
+
+N:39:ダークエレメント
+E:Dark Element
+F:CHAOS | EVIL | MALE | FEMALE | NO_CHANGE | SECRET | REALM_ELEM_1
+F:RES_ACID | RES_ELEC | RES_FIRE | RES_COLD | RES_POIS | RES_STONE | RES_NETHER | RES_DARK
+F:RES_FEAR | REFLECT | SH_FIRE | SH_ELEC | SH_COLD | TELEPATHY
+S:0:0:0:0:0:0
+G:05:05:05:05:05:05
+C:25:28:28:5:25:14:0:80:50
+X:12:8:10:4:0:0:3:35:20
+I:100:15:4:200:50:12
+A:8:70:5
+R:23:62
+M:FIRE | AQUA | EARTH | WIND | DEATH
+T:ダークエレメント
+T:ダークエレメント
+T:ダークエレメント
+T:ダークエレメント
+T:ダークエレメント
+T:ダークエレメント
+T:ダークエレメント
+T:ダークエレメント
+T:ダークエレメント
+T:ダークエレメント
+
+D:魔界で究極の力を手に入れた者の思念体。その力は人間を越え、神の領域にまで達している。
+
+N:40:テンプルコマンド
+E:Temple Command
+F:LAWFUL | NEUTRAL | CHAOS | MALE | FEMALE | NO_CHANGE | SECRET
+S:0:0:0:0:0:0
+G:05:04:04:05:04:02
+C:18:27:22:-3:17:5:0:70:60
+X:8:9:12:0:0:0:0:30:23
+I:15:10:4:150:50:12
+A:6:70:5
+R:23:62
+Z:SLAY_ORC | SLAY_TROLL | SLAY_GIANT | SUST_WIS |
+M:DEATH
+D:テンプルコマンドはロスローリアンを率いる精鋭の騎士です。
+D:自分と仲間2人の全員が生存するテンプルナイトで、ローディスのカオスフレームが150以上なら昇格できます。
+D:テンプルナイトを上回る戦闘能力と暗黒魔法を備え、自分だけの必殺技を習得します。
+D:必殺技はMP20を消費し、2マス以内の敵に武器の追加効果を伴う通常攻撃を行います。
+T:テンプルコマンド
+T:テンプルコマンド
+T:テンプルコマンド
+T:テンプルコマンド
+T:テンプルコマンド
+T:テンプルコマンド
+T:テンプルコマンド
+T:テンプルコマンド
+T:テンプルコマンド
+T:テンプルコマンド

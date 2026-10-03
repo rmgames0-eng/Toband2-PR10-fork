@@ -68,7 +68,7 @@ OBJ = \
 	dungeon.obj effects.obj files.obj flavor.obj floors.obj generate.obj \
 	grid.obj init1.obj init2.obj japanese.obj \
 	load.obj main-win.obj melee1.obj melee2.obj \
-	monster1.obj monster2.obj mspells1.obj mspells2.obj \
+	monster1.obj monster2.obj random-unique.obj mspells1.obj mspells2.obj \
 	mutation.obj \
 	obj_kind.obj object1.obj object2.obj racial.obj \
 	report.obj rooms.obj save.obj scores.obj spells1.obj \

@@ -648,6 +648,11 @@ static bool summon_specific_aux(int r_idx)
 			break;
 		}
 
+        case SUMMON_OGRES:
+            okay = (r_ptr->d_char == 'O' && r_ptr->level >= 60 &&
+                    !(r_ptr->flags1 & RF1_UNIQUE) && !(r_ptr->flags7 & RF7_UNIQUE2));
+            break;
+
 		case SUMMON_KIN:
 		{
 			okay = ((r_ptr->d_char == summon_kin_type) &&
@@ -813,6 +818,19 @@ static bool summon_specific_aux(int r_idx)
  * Some dungeon types restrict the possible monsters.
  * Return TRUE is the monster is OK and FALSE otherwise
  */
+/* These uniques belong exclusively to their fixed demon-realm floors. */
+static int demon_guardian_depth(int r_idx)
+{
+    switch (r_idx)
+    {
+    case MON_DAGDA: return 970;
+    case MON_ASMODE: return 980;
+    case MON_DIABLO: return 990;
+    case MON_DEMUNZA: return 1000;
+    default: return 0;
+    }
+}
+
 static bool restrict_monster_to_dungeon(int r_idx)
 {
 	dungeon_info_type *d_ptr = &d_info[dungeon_type];
@@ -1092,6 +1110,24 @@ errr get_mon_num_prep(monster_hook_type monster_hook,
 		entry->prob2 = 0;
 		r_ptr = &r_info[entry->index];
 
+        /* Retired named variants remain only for old save compatibility. */
+        if (r_ptr->flags1 & RF1_RAND_U_NAME) continue;
+
+        /* Roll only natural encounters, before terrain/alignment hooks.
+         * Preserve individuals on this or another retained floor. */
+        if (IS_RANDOM_UNIQUE(entry->index))
+        {
+            if (monster_hook != get_monster_hook() ||
+                !random_unique_generate(entry->index)) continue;
+        }
+
+        /* Fixed bosses never enter ordinary or summon allocation anywhere. */
+        if (demon_guardian_depth(entry->index)) continue;
+
+        /* Apply to summons as well as ordinary population. */
+        if (dungeon_type == DUNGEON_DEMON && dun_level &&
+            !(r_ptr->flags3 & RF3_EVIL)) continue;
+
 		/* Skip monsters which don't pass the restriction */
 		if ((get_mon_num_hook && !((*get_mon_num_hook)(entry->index))) ||
 		    (get_mon_num2_hook && !((*get_mon_num2_hook)(entry->index))))
@@ -1111,6 +1147,13 @@ errr get_mon_num_prep(monster_hook_type monster_hook,
 
 		/* Accept this monster */
 		entry->prob2 = entry->prob1;
+        /* Only the demon realm treats the level-60+ Ogre family as rarity 1. */
+        if (dungeon_type == DUNGEON_DEMON && dun_level &&
+            r_ptr->d_char == 'O' && r_ptr->level >= 60)
+            entry->prob2 = 100;
+
+        /* Triple random-unique encounter weight, retaining all eligibility rules. */
+        if (IS_RANDOM_UNIQUE(entry->index)) entry->prob2 *= 3;
 
 		if (dun_level && (!p_ptr->inside_quest || quest_is_fixed(p_ptr->inside_quest)) && !restrict_monster_to_dungeon(entry->index))
 		{
@@ -1184,6 +1227,13 @@ static int mysqrt(int n)
  * Note that if no monsters are "appropriate", then this function will
  * fail, and return zero, but this should *almost* never happen.
  */
+/* The allocation table stays sorted by template depth. Dynamic races have
+ * a current level that must be used for eligibility and harder-monster rolls. */
+static int monster_allocation_level(const alloc_entry *entry)
+{
+    return IS_RANDOM_UNIQUE(entry->index) ? r_info[entry->index].level : entry->level;
+}
+
 s16b get_mon_num(int level)
 {
 	int			i, j, p;
@@ -1257,7 +1307,10 @@ s16b get_mon_num(int level)
 		/* Access the actual race */
 		r_ptr = &r_info[r_idx];
 
-		/* Hack -- "unique" monsters must be "unique" */
+        if (monster_allocation_level(&table[i]) > level) continue;
+
+
+	/* Hack -- "unique" monsters must be "unique" */
 		if (((r_ptr->flags1 & (RF1_UNIQUE)) ||
 		     (r_ptr->flags7 & (RF7_NAZGUL))) &&
 		    (r_ptr->cur_num >= r_ptr->max_num))
@@ -1319,7 +1372,7 @@ s16b get_mon_num(int level)
 		}
 
 		/* Keep the "best" one */
-		if (table[i].level < table[j].level) i = j;
+		if (monster_allocation_level(&table[i]) < monster_allocation_level(&table[j])) i = j;
 	}
 
 	/* Try for a "harder" monster twice (10%) */
@@ -1342,7 +1395,7 @@ s16b get_mon_num(int level)
 		}
 
 		/* Keep the "best" one */
-		if (table[i].level < table[j].level) i = j;
+		if (monster_allocation_level(&table[i]) < monster_allocation_level(&table[j])) i = j;
 	}
 
 	/* Result */
@@ -1666,18 +1719,9 @@ void monster_desc(char *desc, monster_type *m_ptr, int mode)
 		if (m_ptr->nickname)
 		{
 #ifdef JP
-			if (r_ptr->flags1 & RF1_RAND_U_NAME)
-				sprintf(buf,"『%s』",quark_str(m_ptr->nickname));
-			else
-				sprintf(buf,"「%s」",quark_str(m_ptr->nickname));
+			sprintf(buf,"「%s」",quark_str(m_ptr->nickname));
 #else
-			if (r_ptr->flags1 & RF1_RAND_U_NAME)
-			{
-				strcpy(buf, desc);
-				sprintf(desc,"%s, ",quark_str(m_ptr->nickname));
-			}
-			else
-				sprintf(buf," called %s",quark_str(m_ptr->nickname));
+			sprintf(buf," called %s",quark_str(m_ptr->nickname));
 #endif
 			strcat(desc,buf);
 		}
@@ -1700,7 +1744,7 @@ void monster_desc(char *desc, monster_type *m_ptr, int mode)
 		if (mode & MD_POSSESSIVE)
 		{
 			/* XXX Check for trailing "s" */
-			
+
 			/* Simply append "apostrophe" and "s" */
 #ifdef JP
 			(void)strcat(desc, "の");
@@ -1730,7 +1774,7 @@ int lore_do_probe(int r_idx)
 	if (r_ptr->r_wake != MAX_UCHAR) n++;
 	if (r_ptr->r_ignore != MAX_UCHAR) n++;
 	r_ptr->r_wake = r_ptr->r_ignore = MAX_UCHAR;
-				
+
 	/* Observe "maximal" attacks */
 	for (i = 0; i < 4; i++)
 	{
@@ -1742,7 +1786,7 @@ int lore_do_probe(int r_idx)
 			r_ptr->r_blows[i] = MAX_UCHAR;
 		}
 	}
-				
+
 	/* Maximal drops */
 	tmp_byte = 
 		(((r_ptr->flags1 & RF1_DROP_4D2) ? 8 : 0) +
@@ -1763,11 +1807,11 @@ int lore_do_probe(int r_idx)
 		if (r_ptr->r_drop_gold != tmp_byte) n++;
 		r_ptr->r_drop_gold = tmp_byte;
 	}
-				
+
 	/* Observe many spells */
 	if (r_ptr->r_cast_spell != MAX_UCHAR) n++;
 	r_ptr->r_cast_spell = MAX_UCHAR;
-				
+
 	/* Count unknown flags */
 	for (i = 0; i < 32; i++)
 	{
@@ -2269,6 +2313,17 @@ static bool place_monster_one(int who, int y, int x, int r_idx, u32b mode)
 
 	cptr		name = (r_name + r_ptr->name);
 
+    if (r_ptr->flags1 & RF1_RAND_U_NAME) return FALSE;
+
+    if (IS_RANDOM_UNIQUE(r_idx))
+    {
+        if (dun_level < 10 || p_ptr->inside_arena || p_ptr->inside_quest ||
+            !random_unique_available(r_idx)) return FALSE;
+        if (!r_ptr->extra || !r_ptr->max_num)
+            if (!random_unique_generate(r_idx)) return FALSE;
+        if (!restrict_monster_to_dungeon(r_idx)) return FALSE;
+    }
+
 	/* DO NOT PLACE A MONSTER IN THE SMALL SCALE WILDERNESS !!! */
 	if(p_ptr->wild_mode) return FALSE;
 
@@ -2309,6 +2364,13 @@ static bool place_monster_one(int who, int y, int x, int r_idx, u32b mode)
 	{
 		return FALSE;
 	}
+
+    {
+        int depth = demon_guardian_depth(r_idx);
+        if (depth && (dungeon_type != DUNGEON_DEMON || dun_level != depth)) return FALSE;
+    }
+    if (dungeon_type == DUNGEON_DEMON && dun_level &&
+        !(r_ptr->flags3 & RF3_EVIL)) return FALSE;
 
 	/* Hack -- "unique" monsters must be "unique" */
 	if (((r_ptr->flags1 & (RF1_UNIQUE)) ||
@@ -2523,22 +2585,7 @@ static bool place_monster_one(int who, int y, int x, int r_idx, u32b mode)
 
 	reset_target(m_ptr);
 
-	if (r_ptr->flags1 & RF1_RAND_U_NAME)
-	{
-		char out_val[80];
-
-		while(!m_ptr->nickname)
-		{
-			byte mon_sex = 0;
-
-			if (r_ptr->flags1 & RF1_MALE) mon_sex = 1;
-			else if (r_ptr->flags1 & RF1_FEMALE) mon_sex = 2;
-
-			if (get_rnd_line("petnam_j.txt", mon_sex, out_val) == 0)
-				m_ptr->nickname = quark_add(out_val);
-		}
-	}
-	else m_ptr->nickname = 0;
+	m_ptr->nickname = 0;
 
 	m_ptr->exp = 0;
 
@@ -2588,7 +2635,7 @@ static bool place_monster_one(int who, int y, int x, int r_idx, u32b mode)
 
 	if (!p_ptr->inside_arena)
 	{
-		if (pclass_is_(CLASS_TEMPLEKNIGHT))
+		if ((pclass_is_(CLASS_TEMPLEKNIGHT) || pclass_is_(CLASS_TEMPLECOMMAND)))
 		{
 			if ((r_ptr->flags3 & RF3_TEMPLE) && !(r_ptr->flags1 & RF1_QUESTOR))
 			{
@@ -2991,6 +3038,10 @@ static bool place_monster_okay(int r_idx)
 	    (z_ptr->d_char != r_ptr->escort_char[3]))
 		return (FALSE);
 
+    /* Goblins share O, but are not part of the dark lord's Ogre escort. */
+    if (place_monster_idx == MON_OGRE_DARK_LORD &&
+        (z_ptr->d_char != 'O' || z_ptr->level < 60)) return FALSE;
+
 	/* Skip more advanced monsters */
 	if (z_ptr->level > r_ptr->level) return (FALSE);
 
@@ -3204,9 +3255,20 @@ bool alloc_horde(int y, int x)
  */
 bool alloc_guardian(u32b mode)
 {
-	int guardian = d_info[dungeon_type].final_guardian;
+    int guardian = d_info[dungeon_type].final_guardian;
+    int depth = d_info[dungeon_type].maxdepth;
 
-	if (guardian && (d_info[dungeon_type].maxdepth == dun_level) && (r_info[guardian].cur_num < r_info[guardian].max_num))
+    if (dungeon_type == DUNGEON_DEMON)
+    {
+        switch (dun_level)
+        {
+        case 970: guardian = MON_DAGDA; depth = 970; break;
+        case 980: guardian = MON_ASMODE; depth = 980; break;
+        case 990: guardian = MON_DIABLO; depth = 990; break;
+        }
+    }
+
+    if (guardian && (depth == dun_level) && (r_info[guardian].cur_num < r_info[guardian].max_num))
 	{
 		int oy;
 		int ox;
@@ -4260,7 +4322,7 @@ void update_smart_learn(int m_idx, int what)
 
 	case DRS_NETH:
 		if (p_ptr->resist_neth) m_ptr->smart1 |= (SM1_RES_NETH);
-		if (p_ptr->evil_equip || prace_is_(RACE_GHOST)) m_ptr->smart2 |= (SM2_IMM_NETH);
+		if (p_ptr->evil_equip || prace_is_(RACE_GHOST) || pclass_is_(CLASS_DARK_ELEMENT)) m_ptr->smart2 |= (SM2_IMM_NETH);
 		break;
 
 	case DRS_LITE:
@@ -4269,7 +4331,7 @@ void update_smart_learn(int m_idx, int what)
 
 	case DRS_DARK:
 		if (p_ptr->resist_dark) m_ptr->smart1 |= (SM1_RES_DARK);
-		if (p_ptr->evil_equip || WRAITH_FORM()) m_ptr->smart2 |= (SM2_IMM_DARK);
+		if (p_ptr->evil_equip || WRAITH_FORM() || pclass_is_(CLASS_DARK_ELEMENT)) m_ptr->smart2 |= (SM2_IMM_DARK);
 		break;
 
 	case DRS_FEAR:

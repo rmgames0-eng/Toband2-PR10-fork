@@ -3786,8 +3786,8 @@ D:$A great yeek, powerful in magic and sorcery, but a yeek all the same.
 D:偉大なイークで魔法を得意としているが、やっぱりイークだ。
 
 #J0#
-N:238:オーガ
-E:Ogre
+N:238:ゴブリン
+E:Goblin
 G:O:U
 I:110:13d9:20:33:30
 W:13:2:0:50:300:262
@@ -4173,8 +4173,8 @@ D:$It is a massive animated statue made out of hardened clay.
 D:それは生命を吹き込まれた堂々たる巨像で、硬い土でできている。
 
 #J0#
-N:262:ブラック・オーガ
-E:Black ogre
+N:262:ブラックゴブリン
+E:Black goblin
 G:O:D
 I:110:20d9:20:33:30
 W:15:2:0:75:400:907
@@ -6778,8 +6778,8 @@ D:おのれの魂を磨き、業を乗り越えるために、
 D:剣技を極めんとする剣士。
 
 #J0#
-N:415:洞窟オーガ
-E:Cave ogre
+N:415:洞窟ゴブリン
+E:Cave goblin
 G:O:u
 I:110:30d9:20:33:30
 W:26:1:0:100:0:0
@@ -7049,8 +7049,8 @@ F:ONLY_ITEM | DROP_GOOD | RES_ACID | DROP_CORPSE | DROP_SKELETON
 D:ウォスルタ解放軍の騎士。ウォルスタ人。
 
 #J0#
-N:430:オーガ・メイジ
-E:Ogre mage
+N:430:ゴブリン・メイジ
+E:Goblin mage
 G:O:o
 I:110:30d12:20:40:30
 W:27:2:0:300:0:0
@@ -7065,8 +7065,8 @@ F:EVIL | GIANT
 S:1_IN_4 | 
 S:HEAL | HOLD | TRAPS | BA_COLD | 
 S:S_MONSTER
-D:$A hideous ogre wrapped in black sorcerous robes.
-D:ソーサラーの着る黒いローブに身を包んだ、ぞっとするようなオーガだ。
+D:$A hideous goblin wrapped in black sorcerous robes.
+D:ソーサラーの着る黒いローブに身を包んだ、ぞっとするようなゴブリンだ。
 
 #JZ#
 #JZ#グレンデル
@@ -7954,8 +7954,8 @@ D:$It is a giant beetle that produces a chilling sound.
 D:それは寒気をもよおす様な羽音を立てる巨大な甲虫だ。
 
 #J0#
-N:479:オーガ・シャーマン
-E:Ogre shaman
+N:479:ゴブリンシャーマン
+E:Goblin shaman
 G:O:b
 I:110:14d10:20:55:30
 W:32:2:0:250:0:0
@@ -7969,8 +7969,8 @@ F:EVIL | GIANT | HAS_LITE_1
 S:1_IN_5 | 
 S:TPORT | HOLD | SCARE | CAUSE_2 | TRAPS | BO_FIRE | 
 S:S_MONSTER
-D:$It is an ogre wrapped in furs and covered in grotesque body paints.
-D:それは毛皮を着たオーガで、体にはグロテスクな彩色を施している。
+D:$It is an goblin wrapped in furs and covered in grotesque body paints.
+D:それは毛皮を着たゴブリンで、体にはグロテスクな彩色を施している。
 
 #J0#
 N:480:ネクサス・クイルスルグ
@@ -10362,8 +10362,8 @@ D:$approaches.
 D:この強力なあの世の者が近づいてくると、自分の魂が肉体から引き裂かれるようだ。
 
 #TO#
-N:605:セラフ
-E:Seraph
+N:605:スローンズ
+E:Thrones
 G:A:w
 I:120:50d10:30:68:255
 W:38:4:0:1800:8000:661
@@ -11977,6 +11977,26 @@ D:の忠誠は変わる事無く、仇を討つ機会を伺い、ダムザ砦に潜伏していた。
 
 
 #TO#
+N:685:オウガ
+E:Ogre
+G:O:s
+I:120:40d100:30:100:15
+W:60:20:0:17500:0:0
+B:CRUSH:HELL:10d11
+B:CRUSH:HELL:10d11
+B:CRUSH:SUPERHURT:10d11
+B:CRUSH:SUPERHURT:10d11
+F:RES_FIRE | FRIENDS
+F:FORCE_SLEEP | FORCE_MAXHP | RES_STON |
+F:ONLY_ITEM | DROP_4D2 | DROP_2D2 | DROP_GOOD | MOVE_BODY |
+F:SMART | KILL_ITEM | BASH_DOOR |
+F:EVIL | GIANT | MALE | HURT_LITE
+F:RES_DARK | RES_NETH | RES_POIS | NO_CONF | NO_FEAR
+S:1_IN_4 | BR_DARK | BLIND | CONF
+D:$A mighty ogre whose crushing blows are infused with evil power.
+D:「オウガとは、伝説に登場する悪鬼のことです。人間とは別の生き物で、光より闇を好み、愛や正義よりも、力と戦いを好む野蛮な奴ら」
+D:「人の心のなかにオウガは実在します。オウガもまた、悪魔に心奪われた人間かもしれない」
+
 N:686:激憤の『バヴァン』
 E:Bavan
 G:p:U
@@ -14836,6 +14856,25 @@ D:する。彼女は不潔で忌まわしいブレスを吐くと言われている。
 
 
 #heng#
+N:809:グレーター・オウガ
+E:Greater ogre
+G:O:D
+I:130:60d100:30:100:15
+W:72:20:0:30000:0:0
+B:CRUSH:HELL:12d12
+B:CRUSH:HELL:12d12
+B:CRUSH:SUPERHURT:12d12
+B:CRUSH:SUPERHURT:12d12
+F:RES_FIRE
+F:FORCE_SLEEP | FORCE_MAXHP | RES_STON |
+F:ONLY_ITEM | DROP_4D2 | DROP_2D2 | DROP_GOOD | MOVE_BODY |
+F:SMART | KILL_ITEM | BASH_DOOR |
+F:EVIL | GIANT | MALE | HURT_LITE
+F:RES_DARK | RES_NETH | RES_POIS | NO_CONF | NO_FEAR
+S:1_IN_4 | BR_DARK | BA_DARK | BLIND | CONF
+D:$A mighty ogre that dominates its kin through overwhelming strength and dark power.
+D:圧倒的な剛力と深い闇の力で、同族をも屈服させる上位のオウガだ。
+
 N:810:鳳凰
 E:Fenghuang
 G:B:R
@@ -14986,6 +15025,25 @@ D:出会った人間を狩ることが楽しみのよう。
 
 
 #TO#
+N:816:古代のオウガ
+E:Ancient ogre
+G:O:v
+I:130:70d100:30:100:15
+W:78:20:0:38000:0:0
+B:CRUSH:HELL:16d12
+B:CRUSH:HELL:16d12
+B:CRUSH:SUPERHURT:16d12
+B:CRUSH:SUPERHURT:16d12
+F:RES_FIRE
+F:FORCE_SLEEP | FORCE_MAXHP | RES_STON |
+F:ONLY_ITEM | DROP_4D2 | DROP_2D2 | DROP_GOOD | MOVE_BODY |
+F:SMART | KILL_ITEM | BASH_DOOR |
+F:EVIL | GIANT | MALE | HURT_LITE
+F:RES_DARK | RES_NETH | RES_POIS | NO_CONF | NO_FEAR
+S:1_IN_4 | BR_DARK | S_KIN | BA_DARK | BLIND | CONF
+D:$An ancient ogre whose dark power and crushing strength have grown through countless battles.
+D:悠久の時を戦い抜き、邪悪な力と破壊的な剛力を蓄えた古きオウガだ。
+
 N:817:魔女『ベルゼビュート』
 E:Belzbute, the Witch
 G:U:g
@@ -16913,8 +16971,8 @@ D:$produces.
 D:それはマグマのような体から発する熱によって、まわりに近づくあらゆるもの
 D:を焼きつくしながら動いている。
 
-N:907:オーガ戦士
-E:Ogre warrior
+N:907:ゴブリン戦士
+E:Goblin warrior
 G:O:B
 I:110:10d15:20:34:50
 W:21:2:0:100:800:415
@@ -16922,8 +16980,8 @@ B:HIT:SUPERHURT:4d8
 B:HIT:SUPERHURT:4d8
 F:RAND_25 | DROP_90 | OPEN_DOOR | BASH_DOOR | DROP_CORPSE | EVIL | GIANT | MOVE_BODY
 F:WILD_WASTE
-D:$It is a massive ogre in metal armour, a champion of its kind.
-D:金属の鎧に身を包んだ力強いオーガであり、同族の中で最も強力だ。
+D:$It is a massive goblin in metal armour, a champion of its kind.
+D:金属の鎧に身を包んだ力強いゴブリンであり、同族の中で最も強力だ。
 
 N:908:生きたポール・アックス
 E:Pole axe of animated attack
@@ -17159,7 +17217,7 @@ N:921:『伝説のオウガ』
 E:Legendary Ogre
 G:O:G
 I:145:211d175:25:100:10
-W:109:12:0:52515:0:0
+W:109:20:0:52515:0:0
 B:HIT:COLD:9d9
 B:HIT:COLD:12d12
 B:HIT:HELL:14d11
@@ -17419,6 +17477,47 @@ F:EGG_ONLY
 
 # 大きな卵
 
+N:936:太古のオウガ
+E:Primordial ogre
+G:O:U
+I:130:90d100:30:100:15
+W:87:20:0:50000:0:0
+B:CRUSH:HELL:20d12
+B:CRUSH:HELL:20d12
+B:CRUSH:SUPERHURT:20d12
+B:CRUSH:SUPERHURT:20d12
+F:RES_FIRE
+F:FORCE_SLEEP | FORCE_MAXHP | RES_STON |
+F:ONLY_ITEM | DROP_4D2 | DROP_2D2 | DROP_GOOD | MOVE_BODY |
+F:SMART | KILL_ITEM | BASH_DOOR |
+F:EVIL | GIANT | MALE | HURT_LITE
+F:RES_DARK | RES_NETH | RES_POIS | NO_CONF | NO_FEAR
+F:RES_TELE | NO_STUN
+S:1_IN_4 | BR_DARK | S_KIN | BA_DARK | HEAL | HASTE | BA_MANA | BLIND | CONF | BR_PURE_ELEM
+D:$A primordial ogre that wields devastating strength and storms of raw magic.
+D:太古から生き続け、圧倒的な剛力と荒れ狂う魔力で敵を葬るオウガだ。
+
+N:937:オウガ・ロード
+E:Ogre lord
+G:O:R
+I:135:120d100:30:100:15
+W:93:20:0:65000:0:0
+B:CRUSH:HELL:24d12
+B:CRUSH:HELL:24d12
+B:CRUSH:SUPERHURT:24d12
+B:CRUSH:SUPERHURT:24d12
+F:RES_FIRE
+F:FORCE_SLEEP | FORCE_MAXHP | RES_STON |
+F:ONLY_ITEM | DROP_4D2 | DROP_2D2 | DROP_GOOD | MOVE_BODY |
+F:SMART | KILL_ITEM | BASH_DOOR |
+F:EVIL | GIANT | MALE | HURT_LITE
+F:RES_DARK | RES_NETH | RES_POIS | NO_CONF | NO_FEAR
+F:RES_TELE | NO_STUN
+F:POWERFUL
+S:1_IN_4 | BR_DARK | S_KIN | BA_DARK | HEAL | HASTE | BA_MANA | BLIND | CONF | BR_PURE_ELEM
+D:$An ogre lord who rules its kin with overwhelming strength and devastating magic.
+D:凄絶な剛力と破滅的な魔法を振るい、強大なオウガたちを力で従える支配者だ。
+
 N:938:エッグモンスター
 E:Egg monster
 G:i:b
@@ -17448,6 +17547,46 @@ F:EGG_ONLY
 # 942 (unused)
 
 # 不思議な卵
+
+N:941:オウガ・ダークロード
+E:Ogre dark lord
+G:O:v
+I:140:150d100:30:100:15
+W:101:20:0:80000:0:0
+B:CRUSH:SHATTER:24d12
+B:CRUSH:SHATTER:24d12
+B:CRUSH:SUPERHURT:24d12
+B:CRUSH:SUPERHURT:24d12
+F:RES_FIRE | ESCORT_O
+F:FORCE_SLEEP | FORCE_MAXHP | RES_STON |
+F:ONLY_ITEM | DROP_3D2 | DROP_GOOD | DROP_GREAT | MOVE_BODY |
+F:SMART | KILL_ITEM | BASH_DOOR |
+F:EVIL | GIANT | MALE | HURT_LITE
+F:RES_DARK | RES_NETH | RES_POIS | NO_CONF | NO_FEAR
+F:RES_TELE | NO_STUN
+F:POWERFUL
+S:1_IN_3 | BR_DARK | S_KIN | BA_DARK | HEAL | HASTE | BA_MANA | S_HI_UNDEAD | DARK_LORE | BR_PURE_ELEM
+D:$A dark lord of the ogres whose crushing blows shake the earth and whose summons command mighty undead.
+D:大地を揺るがす剛腕と死者を従える暗黒の魔法で、すべてを蹂躙するオウガの支配者だ。
+
+N:942:オウガ・メイジ
+E:Ogre mage
+G:O:b
+I:120:30d100:30:100:15
+W:67:20:0:20000:0:0
+B:CRUSH:HELL:6d10
+B:CRUSH:HELL:6d10
+B:CRUSH:SUPERHURT:6d10
+B:CRUSH:SUPERHURT:6d10
+F:RES_FIRE
+F:FORCE_SLEEP | FORCE_MAXHP | RES_STON |
+F:ONLY_ITEM | DROP_4D2 | DROP_2D2 | DROP_GOOD | MOVE_BODY |
+F:SMART | KILL_ITEM | BASH_DOOR |
+F:EVIL | GIANT | MALE | HURT_LITE
+F:RES_DARK | RES_NETH | RES_POIS | NO_CONF | NO_FEAR
+S:1_IN_3 | BR_DARK | BLIND | CONF | BO_FIRE | BO_COLD | BO_MANA | SLOW | BLINK | TPORT
+D:$An ogre mage who trades brute strength for destructive spells and elusive magic.
+D:剛力よりも魔術を磨き、破壊の魔法と幻惑で敵を翻弄するオウガだ。
 
 N:943:エッグモンスター
 E:Egg monster
@@ -17479,6 +17618,43 @@ F:EGG_ONLY
 
 # 腐った卵
 
+N:946:セラフィム
+E:Seraphim
+G:A:W
+I:130:60d100:30:100:15
+W:75:5:0:35000:0:0
+B:HIT:HOLY:14d12
+B:HIT:HOLY:14d12
+B:HIT:SUPERHURT:14d12
+B:HIT:SUPERHURT:14d12
+F:FORCE_SLEEP | FORCE_MAXHP | RES_STON |
+F:ONLY_ITEM | DROP_4D2 | DROP_2D2 | DROP_GOOD | MOVE_BODY |
+F:SMART | OPEN_DOOR | BASH_DOOR | CAN_FLY | SELF_LITE_2 |
+F:GOOD | LAWFUL | RES_LITE | RES_POIS | NO_CONF | NO_FEAR | NO_SLEEP
+F:RES_ACID | RES_ELEC | RES_FIRE | RES_COLD
+S:1_IN_4 | BR_LITE | HEAL | HASTE | BA_LITE
+D:$A radiant angel that stands against the ogres, wielding holy power and overwhelming strength.
+D:闇を好むオウガと対をなし、眩い光と神聖な剛力で邪悪に立ち向かう天使だ。
+
+N:947:堕天使
+E:Fallen angel
+G:A:d
+I:130:65d100:30:170:15
+W:78:5:0:40000:0:0
+B:HIT:HELL:14d12
+B:HIT:HELL:14d12
+B:HIT:SUPERHURT:14d12
+B:HIT:SUPERHURT:14d12
+F:FORCE_SLEEP | FORCE_MAXHP | RES_STON |
+F:ONLY_ITEM | DROP_4D2 | DROP_2D2 | DROP_GOOD | MOVE_BODY |
+F:SMART | OPEN_DOOR | BASH_DOOR | CAN_FLY |
+F:EVIL | CHAOTIC | HURT_LITE | RES_DARK | RES_NETH | RES_POIS |
+F:NO_CONF | NO_FEAR | NO_SLEEP |
+F:RES_ACID | RES_ELEC | RES_FIRE | RES_COLD
+S:1_IN_3 | BR_DARK | BA_DARK | BA_NETH | HEAL | HASTE | TELE_TO
+D:$An angel cast from the light, wielding corrupted strength and dark magic against the living.
+D:光を捨て、憎悪と暗黒の力に身を委ねた天使だ。失われた祝福の代わりに邪悪な魔力を振るい、逃げる者を眼前へ引き寄せる。
+
 N:948:おぞましい粘液状のモノ
 E:Horrifying sticky thing
 G:j:D
@@ -17508,6 +17684,52 @@ F:EGG_ONLY | EVIL | CHAOTIC
 # 952 (unused)
 
 # From Vanilla 3.0.1
+N:951:原初の熾天使
+E:Primordial seraphim
+G:A:W
+I:135:120d100:30:150:15
+W:93:3:0:65000:0:0
+B:HIT:HOLY:24d12
+B:HIT:HOLY:24d12
+B:HIT:SUPERHURT:24d12
+B:HIT:SUPERHURT:24d12
+F:FORCE_SLEEP | FORCE_MAXHP | RES_STON |
+F:ONLY_ITEM | DROP_4D2 | DROP_2D2 | DROP_GOOD | MOVE_BODY |
+F:SMART | TAKE_ITEM | OPEN_DOOR | BASH_DOOR | CAN_FLY | SELF_LITE_2 |
+F:GOOD | LAWFUL | RES_LITE | RES_POIS | NO_CONF | NO_FEAR | NO_SLEEP |
+F:RES_ACID | RES_ELEC | RES_FIRE | RES_COLD |
+F:RES_TELE | NO_STUN | POWERFUL
+S:1_IN_3 | BR_LITE | HEAL | HASTE | BA_LITE | BA_MANA
+S:TELE_AWAY | BO_MANA
+S:S_MONSTERS | S_ANGEL | INVULNER | GODLY_SPEAR | S_DRAGON | DISPEL
+S:IGNIS_FATUUS
+D:$An ancient seraphim from the dawn of creation, whose sacred blows and radiant storms bring judgment upon evil.
+D:伝説のオウガバトルでオウガ達と激戦を繰り広げた旧き天使だ。
+
+
+N:952:熾天使長
+E:Seraphim lord
+G:A:W
+I:145:150d100:30:230:15
+W:107:3:0:65000:0:0
+B:HIT:HOLY:24d12
+B:HIT:HOLY:24d12
+B:HIT:SUPERHURT:24d12
+B:HIT:SUPERHURT:24d12
+F:FORCE_SLEEP | FORCE_MAXHP | RES_STON |
+F:ONLY_ITEM | DROP_4D2 | DROP_2D2 | DROP_GOOD | MOVE_BODY |
+F:SMART | TAKE_ITEM | OPEN_DOOR | BASH_DOOR | CAN_FLY | SELF_LITE_2 |
+F:GOOD | LAWFUL | RES_LITE | RES_POIS | NO_CONF | NO_FEAR | NO_SLEEP |
+F:RES_ACID | RES_ELEC | RES_FIRE | RES_COLD |
+F:RES_TELE | NO_STUN | POWERFUL
+S:1_IN_2 | BR_LITE | HEAL | HASTE | BA_LITE | BA_MANA
+S:TELE_AWAY | BO_MANA
+S:S_MONSTERS | S_ANGEL | INVULNER | S_DRAGON | DISPEL
+S:IGNIS_FATUUS | S_KIN | BR_PURE_ELEM
+D:$A lord of the seraphim who commands the heavenly host, wielding sacred might and pure elemental breath.
+D:旧き天使たちを率いる熾天使の長だ。神聖な力と純粋なエレメントの息吹を振るい、天の軍勢を呼び寄せる。
+
+
 N:953:パープレキシティ・ワイアーム
 E:Great Wyrm of Perplexity
 G:D:U
@@ -17820,7 +18042,7 @@ N:968:ナイト
 E:the Knight
 G:p:s
 I:110:14d12:20:35:30
-W:5:6:0:80:0:0
+W:5:0:0:80:0:0
 B:HIT:HURT:1d12
 B:HIT:HURT:1d12
 B:HIT:HURT:1d11
@@ -17834,7 +18056,7 @@ N:969:バーサーカー
 E:the Berserker
 G:p:u
 I:110:12d13:20:25:20
-W:5:6:0:80:0:0
+W:5:0:0:80:0:0
 B:HIT:HURT:1d10
 B:HIT:HURT:1d10
 B:HIT:SUPERHURT:1d10
@@ -17847,7 +18069,7 @@ N:970:テラーナイト
 E:the Terror-Knight
 G:p:D
 I:110:85d12:20:90:40
-W:26:6:0:700:0:0
+W:26:0:0:700:0:0
 B:HIT:SUPERHURT:6d6
 B:HIT:SUPERHURT:6d6
 B:HIT:SUPERHURT:6d6
@@ -17862,7 +18084,7 @@ N:971:ビーストテイマー
 E:the BeastTamer
 G:p:y
 I:110:30d20:30:50:30
-W:20:6:0:450:0:0
+W:20:0:0:450:0:0
 B:HIT:HURT:2d6
 B:HIT:HURT:1d6
 B:HIT:HURT:1d6
@@ -17877,7 +18099,7 @@ N:972:ソードマスター
 E:the Sword-master
 G:p:u
 I:120:20d20:25:80:20
-W:35:10:0:450:0:0
+W:35:0:0:450:0:0
 B:SLASH:HURT:8d8
 B:SLASH:HURT:8d8
 B:SLASH:SUPERHURT:4d8
@@ -17893,7 +18115,7 @@ N:973:ドラグーン
 E:the Dragoon
 G:p:o
 I:115:50d10:20:100:30
-W:35:10:0:600:0:0
+W:35:0:0:600:0:0
 B:HIT:HURT:4d4
 B:HIT:HURT:4d4
 B:HIT:HURT:6d4
@@ -17907,7 +18129,7 @@ N:974:ウィザード
 E:the Wizard
 G:p:r
 I:110:40d10:20:25:20
-W:10:6:0:500:0:0
+W:10:0:0:500:0:0
 B:HIT:HURT:1d8
 F:MALE | HUMAN | EGO | RAND_U_NAME |
 F:FORCE_MAXHP | RES_POIS | RES_COLD | HAS_LITE_1 |
@@ -17923,7 +18145,7 @@ N:975:ウォーロック
 E:the Warlock
 G:p:g
 I:120:23d100:30:65:30
-W:35:10:0:12000:0:0
+W:35:0:0:12000:0:0
 B:HIT:HURT:2d8
 B:HIT:DR_MANA:2d9
 F:MALE | HUMAN | EGO | RAND_U_NAME |
@@ -17942,7 +18164,7 @@ N:976:エクソシスト
 E:Exorcist
 G:p:s
 I:115:6d100:20:60:40
-W:25:6:0:900:0:0
+W:25:0:0:900:0:0
 B:HIT:HURT:4d5
 B:HIT:HURT:4d5
 B:HIT:HURT:4d5
@@ -17959,7 +18181,7 @@ N:977:ヴァルキリー
 E:the Valkyrie
 G:p:r
 I:115:13d25:20:60:10
-W:25:6:0:900:0:0
+W:25:0:0:900:0:0
 B:SHOOT:HURT:10d4
 B:HIT:HURT:3d4
 B:HIT:HURT:3d4
@@ -17976,7 +18198,7 @@ N:978:アーチャー
 E:the Archer
 G:p:g
 I:120:14d12:20:30:20
-W:8:6:0:150:0:0
+W:8:0:0:150:0:0
 B:SHOOT:HURT:3d10
 B:HIT:HURT:2d6
 F:FEMALE | FORCE_SLEEP | FORCE_MAXHP | HUMAN | EGO | RAND_U_NAME |
@@ -17989,7 +18211,7 @@ N:979:ドラゴンテイマー
 E:the Dragontamer
 G:p:y
 I:120:70d30:20:110:10
-W:40:10:0:4500:0:0
+W:40:0:0:4500:0:0
 B:SHOOT:HURT:15d10
 B:HIT:HURT:5d6
 B:HIT:HURT:5d6
@@ -18006,7 +18228,7 @@ N:980:ウィッチ
 E:the Witch
 G:p:G
 I:110:25d10:20:30:20
-W:8:6:0:200:0:0
+W:8:0:0:200:0:0
 B:SHOOT:HURT:3d10
 B:TOUCH:CONFUSE:1d10
 B:TOUCH:UN_POWER
@@ -18024,7 +18246,7 @@ N:981:セイレーン
 E:the Sirene
 G:p:b
 I:110:30d15:20:60:10
-W:30:10:0:800:0:0
+W:30:0:0:800:0:0
 B:HIT:HURT:2d6
 B:HIT:HURT:2d6
 F:FEMALE | HUMAN | EGO | RAND_U_NAME |
@@ -18042,7 +18264,7 @@ N:982:クレリック
 E:the Cleric
 G:p:B
 I:110:10d12:40:20:20
-W:5:6:0:80:0:0
+W:5:0:0:80:0:0
 B:HIT:HURT:2d3
 F:OPEN_DOOR | FORCE_MAXHP | NO_CONF | NO_SLEEP | HUMAN |
 F:FEMALE | FORCE_SLEEP | SMART | POWERFUL | LAWFUL |
@@ -18055,7 +18277,7 @@ N:983:プリースト
 E:the Priest
 G:p:w
 I:120:80d10:20:60:10
-W:40:10:0:4500:0:0
+W:40:0:0:4500:0:0
 B:HIT:HURT:2d3
 B:HIT:HURT:2d3
 F:FEMALE | HAS_LITE_2 | EGO | RAND_U_NAME |
@@ -18067,3 +18289,138 @@ S:1_IN_3 |
 S:HEAL | SCARE | CAUSE_2 | BO_COLD | HOLY_ORB |
 S:ANIM_DEAD | IGNIS_FATUUS |
 
+N:984:賢者『ラシュディ』
+E:Rashidi, the Sage
+G:p:G
+I:130:180d110:111:160:0
+W:109:1:0:100000:0:0
+B:HIT:UN_BONUS:10d12
+B:HIT:UN_BONUS:10d12
+B:TOUCH:UN_POWER
+B:TOUCH:UN_POWER
+F:UNIQUE | MALE | CAN_SPEAK | REFLECTING | HAS_LITE_2
+F:FORCE_SLEEP | FORCE_DEPTH | FORCE_MAXHP | ELEM_EARTH | COLD_BLOOD
+F:ONLY_ITEM | DROP_2D2 | DROP_3D2 | DROP_4D2 | DROP_GOOD | DROP_GREAT
+F:SMART | OPEN_DOOR | BASH_DOOR | MOVE_BODY | REGENERATE
+F:EVIL | RES_FIRE | RES_COLD | RES_POIS | ATTR_MULTI | ATTR_ANY
+F:NO_CONF | NO_SLEEP | NO_FEAR | RES_TELE | POWERFUL
+F:RES_PLAS | RES_WATE | NO_STUN | RES_DARK | RES_NETH
+F:RES_ACID | RES_STON | RES_SHAR | CHAOTIC | LONG_RANGE | MOVE_BODY
+S:1_IN_1
+S:TPORT | BLIND | CONF | SCARE | CAUSE_4
+S:BRAIN_SMASH | FORGET
+S:BO_ICEE | BO_MANA | BO_PLAS
+S:BA_MANA
+S:S_MONSTERS | S_DEMON | S_HI_UNDEAD | S_HI_DRAGON
+S:HAND_DOOM | ANIM_DEAD | DISPEL | PURE_ELEM_BEAM | DARK_LORE
+S:SAND_STORM | CHANGE_ELEM | SHIFT_ELEM | PETRO_CLOUD
+D:$A sage who wields formidable magic.
+D:大陸統一を果たした伝説の五勇者の一人であり、何度もの転生を繰り返し暗黒道を操る、ゼテギネア大陸一の賢者だ。神にも届かんとするその魔力はカオスゲートの封印すらも容易に解く。
+
+N:985:冥界の暗黒神『ディアブロ』
+E:Diablo, the Dark God of the Underworld
+G:U:D
+I:140:450d100:100:150:0
+W:125:1:0:300000:0:0
+B:HIT:SHATTER:20d12
+B:HIT:SHATTER:20d12
+B:HIT:LOSE_ALL:12d12
+B:TOUCH:UN_POWER
+F:UNIQUE | MALE | CAN_SPEAK | FORCE_SLEEP | FORCE_MAXHP | FORCE_DEPTH |
+F:SMART | POWERFUL | REGENERATE | KILL_WALL | MOVE_BODY | AURA_COLD |
+F:EVIL | DEMON | CHAOTIC |
+F:RES_ACID | RES_ELEC | RES_FIRE | RES_COLD | RES_POIS | RES_DARK |
+F:NO_FEAR | NO_CONF | NO_SLEEP |
+F:ONLY_ITEM | DROP_1D2 | DROP_2D2 | DROP_3D2 | DROP_4D2 | DROP_GOOD | DROP_GREAT
+S:1_IN_4 | SPECIAL | BA_NETH | BA_MANA | BA_DARK | BRAIN_SMASH | BO_MANA | DISPEL |
+S:S_MONSTERS | S_KIN | S_HI_DRAGON | S_UNIQUE | BA_FIRE | BA_COLD | DARK_FIRE
+D:$The dark god who led the ogre armies against the gods, sealed in Sharia and awakened by Rashidi.
+D:オウガバトルでオウガの軍勢を率いて神々と戦った暗黒の神。敗れて魔宮シャリーアに封印されたが、賢者ラシュディの魔力で呼び覚まされ、地上の者に暗黒神への讃美歌を要求している。
+
+N:986:暗黒の魔神『アスモデ』
+E:Asmode, the Dark God
+G:U:v
+I:130:420d100:100:150:200
+W:115:3:0:400000:0:0
+B:CHARGE:SUPERHURT:25d8
+B:CRAWL:UN_BONUS:25d5
+B:TOUCH:CONFUSE:25d7
+B:ENGULF:ACID:35d35
+F:UNIQUE | FORCE_SLEEP | FORCE_MAXHP | FORCE_DEPTH | ESCORT_U |
+F:EVIL | DEMON | CHAOTIC | ATTR_MULTI | ATTR_ANY | POWERFUL |
+F:AURA_FIRE | AURA_COLD | AURA_ELEC | EMPTY_MIND | REGENERATE |
+F:OPEN_DOOR | BASH_DOOR | KILL_WALL | KILL_ITEM |
+F:RES_ACID | RES_FIRE | RES_POIS | RES_CHAO | RES_DISE | RES_TIME | RES_TELE |
+F:NO_FEAR | NO_CONF | NO_SLEEP |
+F:ONLY_ITEM | DROP_3D2 | DROP_4D2 | DROP_90 | DROP_GOOD | DROP_GREAT
+S:SPECIAL
+S:1_IN_4 | BR_ACID | BR_DARK | BR_CHAO | BR_DISE | BR_SHAR | BR_MANA | BR_DISI |
+S:BA_WATE | BA_CHAO | BA_DISI | S_KIN
+D:$A dark god who led 108 legions against Filarhh under Demunza, sometimes lending humans his aid on a whim.
+D:冥界の王デムンザに従い108の軍団を率いてフィラーハに戦いを挑んだ暗黒の神だ。古代ゼテギネア時代の錬金術師との勝負の結果に従い、気まぐれで人間に手を貸すこともある。
+
+N:987:暗黒神『ダグザ』
+E:Dagda, the Dark God
+G:U:G
+I:135:400d100:100:200:10
+W:110:2:0:150000:0:0
+B:CRAWL:CONFUSE:10d10
+B:SLASH:HURT:15d15
+B:HIT:PARALYZE:12d12
+B:HIT:HELL:30d12
+F:UNIQUE | FORCE_SLEEP | FORCE_MAXHP | FORCE_DEPTH | EVIL | DEMON | MALE |
+F:POWERFUL | CAN_FLY | REGENERATE | BASH_DOOR | KILL_WALL | KILL_BODY |
+F:ATTR_MULTI | ATTR_ANY |
+F:RES_ACID | RES_ELEC | RES_FIRE | RES_POIS | RES_LITE | RES_DARK | RES_NETH |
+F:RES_WATE | RES_SHAR | RES_SOUN | RES_CHAO | RES_DISE | RES_INER | RES_TIME |
+F:NO_STUN | NO_FEAR | NO_CONF | NO_SLEEP
+S:1_IN_4 | BR_DARK | SPECIAL | S_KIN
+D:$A dark god whose blood gave birth to countless demons and beasts.
+D:その血から幾多の魔人と魔獣が生まれた、魔人の一柱だ。
+N:988:冥界と魔界の神『デムンザ』
+E:Demunza, the God of the Underworld and Demon Realm
+G:U:D
+I:150:246d271:100:220:0
+W:127:1:0:350000:0:0
+B:HIT:HELL:25d15
+B:HIT:UN_BONUS:25d15
+B:HIT:SHATTER:25d15
+B:HIT:FIRE:50d50
+F:UNIQUE | MALE | CAN_SPEAK | FORCE_SLEEP | FORCE_MAXHP | FORCE_DEPTH |
+F:SMART | POWERFUL | REGENERATE | KILL_WALL | MOVE_BODY | CAN_FLY |
+F:OPEN_DOOR | BASH_DOOR | EVIL | DEMON | CHAOTIC | AURA_COLD | AURA_FIRE |
+F:RES_ACID | RES_ELEC | RES_FIRE | RES_COLD | RES_POIS | RES_DARK | RES_NETH |
+F:RES_CHAO | RES_DISE | RES_SOUN | RES_PLAS | RES_STON | RES_WALL |
+F:RES_GRAV | RES_INER | RES_TELE | RES_BLUNT | RES_EDGED |
+F:NO_STUN | NO_FEAR | NO_CONF | NO_SLEEP |
+F:ONLY_ITEM | DROP_2D2 | DROP_3D2 | DROP_4D2 | DROP_GOOD | DROP_GREAT
+S:1_IN_4 | TELE_TO | HASTE | DISPEL | DARK_FIRE | BR_DISI
+S:S_KIN | S_HI_DRAGON | S_HI_DEMON | S_HI_UNDEAD
+D:$The ruler of the underworld and the demon realm, and elder brother of Filarhh, lord of heaven.
+D:冥界と魔界の２つの世界を統べる、天界の主フィラーハの兄。
+
+
+N:989:ランダムユニーク1
+E:Random unique 1
+G:?:w
+I:110:1d1:10:10:0
+W:1:5:0:1:0:0
+B:HIT:HURT:1d1
+F:UNIQUE | UNIQUE2 | FORCE_MAXHP
+
+N:990:ランダムユニーク2
+E:Random unique 2
+G:?:w
+I:110:1d1:10:10:0
+W:1:5:0:1:0:0
+B:HIT:HURT:1d1
+F:UNIQUE | UNIQUE2 | FORCE_MAXHP
+
+N:991:ランダムユニーク3
+E:Random unique 3
+G:?:w
+I:110:1d1:10:10:0
+W:1:3:0:1:0:0
+B:HIT:HURT:1d1
+F:UNIQUE | UNIQUE2 | FORCE_MAXHP
+F:AQUATIC | CAN_SWIM

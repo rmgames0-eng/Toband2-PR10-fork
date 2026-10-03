@@ -262,7 +262,11 @@ bool monst_spell_monst(int m_idx, bool target_is_decoy)
 	f4 = r_ptr->flags4;
 	f5 = r_ptr->flags5;
 	f6 = r_ptr->flags6;
+    /* Death targets the player, never monsters or decoys. */
+    if (m_ptr->r_idx == MON_DIABLO) f6 &= ~RF6_SPECIAL;
 	fa = r_ptr->flagsa;
+	if (get_cur_melem(m_ptr) < ELEM_FIRE || get_cur_melem(m_ptr) > ELEM_WIND)
+		fa &= ~RFA_BR_PURE_ELEM;
 
 	if (target_is_decoy)
 	{
@@ -3362,7 +3366,33 @@ bool monst_spell_monst(int m_idx, bool target_is_decoy)
 				/* if (p_ptr->inside_arena) return FALSE; */
 				switch (m_ptr->r_idx)
 				{
-				case MON_OZ:
+				case MON_ASMODE:
+                if (known && see_either)
+                {
+                    disturb(1, 0);
+#ifdef JP
+                    msg_format("%^sは『ウンブラ』を放った！", m_name);
+#else
+                    msg_format("%^s unleashes Umbra!", m_name);
+#endif
+                }
+                dam = 400 + randint1(200);
+                monst_breath_monst(m_idx, y, x, GF_UMBRA, dam, 0, FALSE, FALSE);
+                break;
+                case MON_DAGDA:
+                if (known && see_either)
+                {
+                    disturb(1, 0);
+#ifdef JP
+                    msg_format("%^sは『ブレインストーム』を放った！", m_name);
+#else
+                    msg_format("%^s unleashes Brainstorm!", m_name);
+#endif
+                }
+                dam = (rlev * 4) + 50 + damroll(10, 10);
+                monst_breath_monst(m_idx, y, x, GF_BRAINSTORM, dam, 4, FALSE, FALSE);
+                break;
+                case MON_OZ:
 					if ((x != fx) || (y != fy)) return FALSE;
 					if ((distance(m_ptr->fy, m_ptr->fx, fy, fx) > 2) || !clean_shot(m_ptr->fy, m_ptr->fx, fy, fx, pet, TRUE)) return FALSE;
 					if (known)
@@ -4046,7 +4076,14 @@ bool monst_spell_monst(int m_idx, bool target_is_decoy)
 
 				switch (m_ptr->r_idx)
 				{
-				case MON_THORONDOR:
+				case MON_DAGDA:
+                case MON_ASMODE:
+                case MON_DIABLO:
+                case MON_DEMUNZA:
+                    for (k = 0; k < 4; k++)
+                        count += summon_specific(m_idx, y, x, rlev, SUMMON_OGRES, PM_ALLOW_GROUP);
+                    break;
+                case MON_THORONDOR:
 				case MON_GWAIHIR:
 				case MON_MENELDOR:
 					{
@@ -5529,6 +5566,76 @@ bool monst_spell_monst(int m_idx, bool target_is_decoy)
 				dam = rlev + 70;
 				monst_breath_monst(m_idx, y, x, GF_DISINTEGRATE, dam, 4, FALSE, FALSE);
 
+				break;
+			}
+
+			/* RFA_BR_PURE_ELEM */
+			case 288+25:
+			{
+				int pure_elem_typ = GF_GODLY_SPEAR;
+				cptr pure_elem_desc = "(?)";
+
+				if ((x != fx) || (y != fy)) return FALSE;
+
+				if (get_cur_melem(m_ptr) < ELEM_FIRE || get_cur_melem(m_ptr) > ELEM_WIND) return FALSE;
+
+				switch (get_cur_melem(m_ptr))
+				{
+				case ELEM_FIRE:
+					pure_elem_typ = GF_PURE_FIRE;
+#ifdef JP
+					pure_elem_desc = "*火炎*";
+#else
+					pure_elem_desc = "*fire*";
+#endif
+					break;
+				case ELEM_AQUA:
+					pure_elem_typ = GF_PURE_AQUA;
+#ifdef JP
+					pure_elem_desc = "*水*";
+#else
+					pure_elem_desc = "*aqua*";
+#endif
+					break;
+				case ELEM_EARTH:
+					pure_elem_typ = GF_PURE_EARTH;
+#ifdef JP
+					pure_elem_desc = "*大地*";
+#else
+					pure_elem_desc = "*earth*";
+#endif
+					break;
+				case ELEM_WIND:
+					pure_elem_typ = GF_PURE_WIND;
+#ifdef JP
+					pure_elem_desc = "*風*";
+#else
+					pure_elem_desc = "*wind*";
+#endif
+					break;
+				}
+
+				if (known)
+				{
+					if (see_either)
+					{
+#ifdef JP
+						msg_format("%^sが%sに向かって%sのブレスを吐いた。", m_name, t_name, pure_elem_desc);
+#else
+						msg_format("%^s breathes %s at %s.", m_name, pure_elem_desc, t_name);
+#endif
+
+					}
+					else
+					{
+						mon_fight = TRUE;
+					}
+				}
+
+				dam = MIN(m_ptr->hp / 3, 700);
+				if (known) sound(SOUND_BREATH);
+				monst_breath_monst(m_idx, y, x, pure_elem_typ, dam, 0, TRUE, FALSE);
+				m_ptr->energy_need += 2 * ENERGY_NEED();
 				break;
 			}
 

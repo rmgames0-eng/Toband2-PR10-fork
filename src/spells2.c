@@ -1746,7 +1746,16 @@ void self_knowledge(void)
 
 	}
 
-	if (WRAITH_FORM() || p_ptr->evil_equip || pclass_is_(CLASS_VAMPIRE))
+	if (pclass_is_(CLASS_DARK_ELEMENT))
+	{
+#ifdef JP
+		info[i++] = "あなたは神聖属性のダメージを半減する。";
+#else
+		info[i++] = "You take half damage from holy attacks.";
+#endif
+	}
+
+	if (WRAITH_FORM() || p_ptr->evil_equip || pclass_is_(CLASS_VAMPIRE) || pclass_is_(CLASS_DARK_ELEMENT))
 	{
 #ifdef JP
 		info[i++] = "あなたは暗黒に対する完全なる免疫を持っている。";
@@ -1832,7 +1841,7 @@ void self_knowledge(void)
 
 	}
 
-	if (prace_is_(RACE_GHOST))
+	if (prace_is_(RACE_GHOST) && !pclass_is_(CLASS_DARK_ELEMENT))
 	{
 #ifdef JP
 		info[i++] = "あなたは地獄の力を吸収できる。";
@@ -1841,7 +1850,7 @@ void self_knowledge(void)
 #endif
 
 	}
-	else if (p_ptr->evil_equip)
+	else if (p_ptr->evil_equip || pclass_is_(CLASS_DARK_ELEMENT))
 	{
 #ifdef JP
 		info[i++] = "あなたは地獄の力に対する完全なる免疫を持っている。";

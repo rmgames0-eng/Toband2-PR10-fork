@@ -124,10 +124,10 @@ static void remove_bad_spells(int m_idx, u32b *f4p, u32b *f5p, u32b *f6p, u32b *
 
 		/* Know special resistances */
 		if (p_ptr->resist_neth) smart1 |= (SM1_RES_NETH);
-		if (p_ptr->evil_equip || prace_is_(RACE_GHOST)) smart2 |= (SM2_IMM_NETH);
+		if (p_ptr->evil_equip || prace_is_(RACE_GHOST) || pclass_is_(CLASS_DARK_ELEMENT)) smart2 |= (SM2_IMM_NETH);
 		if (p_ptr->resist_lite) smart1 |= (SM1_RES_LITE);
 		if (p_ptr->resist_dark) smart1 |= (SM1_RES_DARK);
-		if (p_ptr->evil_equip || WRAITH_FORM()) smart2 |= (SM2_IMM_DARK);
+		if (p_ptr->evil_equip || WRAITH_FORM() || pclass_is_(CLASS_DARK_ELEMENT)) smart2 |= (SM2_IMM_DARK);
 		if (p_ptr->resist_fear) smart1 |= (SM1_RES_FEAR);
 		if (p_ptr->resist_conf) smart1 |= (SM1_RES_CONF);
 		if (p_ptr->resist_chaos) smart1 |= (SM1_RES_CHAOS);
@@ -1748,7 +1748,10 @@ bool make_attack_spell(int m_idx)
 	f4 = r_ptr->flags4;
 	f5 = r_ptr->flags5;
 	f6 = r_ptr->flags6;
+    if (m_ptr->r_idx == MON_DIABLO && p_ptr->chp > p_ptr->mhp / 2) f6 &= ~RF6_SPECIAL;
 	fa = r_ptr->flagsa;
+	if (get_cur_melem(m_ptr) < ELEM_FIRE || get_cur_melem(m_ptr) > ELEM_WIND)
+		fa &= ~RFA_BR_PURE_ELEM;
 
 	/* Check range */
 	if ((m_ptr->ddis > MAX_RANGE) && !m_ptr->target_y) return (FALSE);
@@ -3807,7 +3810,41 @@ bool make_attack_spell(int m_idx)
 			disturb(1, 0);
 			switch (m_ptr->r_idx)
 			{
-			case MON_OZ:
+			case MON_ASMODE:
+#ifdef JP
+                msg_format("%^sは『ウンブラ』を放った！", m_name);
+#else
+                msg_format("%^s unleashes Umbra!", m_name);
+#endif
+                dam = 400 + randint1(200);
+                breath(y, x, m_idx, GF_UMBRA, dam, 0, FALSE, FALSE);
+                break;
+            case MON_DAGDA:
+#ifdef JP
+                msg_format("%^sは『ブレインストーム』を放った！", m_name);
+#else
+                msg_format("%^s unleashes Brainstorm!", m_name);
+#endif
+                dam = (rlev * 4) + 50 + damroll(10, 10);
+                breath(y, x, m_idx, GF_BRAINSTORM, dam, 4, FALSE, FALSE);
+                break;
+            case MON_DIABLO:
+                if (x != px || y != py || !projectable(m_ptr->fy, m_ptr->fx, py, px)) return FALSE;
+#ifdef JP
+                msg_format("%^sは「デス」を唱えた！", m_name);
+#else
+                msg_format("%^s casts Death!", m_name);
+#endif
+                if (!diablo_death(m_name))
+                {
+#ifdef JP
+                    msg_print("しかし、効果がなかった。");
+#else
+                    msg_print("But it has no effect.");
+#endif
+                }
+                break;
+            case MON_OZ:
 				if ((x != px) || (y != py)) return (FALSE);
 				if ((m_ptr->cdis > 2) || !clean_shot(m_ptr->fy, m_ptr->fx, py, px, FALSE, TRUE)) return FALSE;
 				disturb(1, 0);
@@ -3832,7 +3869,7 @@ bool make_attack_spell(int m_idx)
 				msg_format("%^s mumbles powerfully.", m_name);
 #endif
 
-				inc_area_elem(m_idx, ELEM_WIND, 99, 2, FALSE);
+				inc_area_elem(m_idx, ELEM_WIND, 990, 2, FALSE);
 				break;
 
 			case MON_SELYE:
@@ -3842,7 +3879,7 @@ bool make_attack_spell(int m_idx)
 				msg_format("%^s mumbles powerfully.", m_name);
 #endif
 
-				inc_area_elem(m_idx, ELEM_FIRE, 99, 2, FALSE);
+				inc_area_elem(m_idx, ELEM_FIRE, 990, 2, FALSE);
 				break;
 
 			case MON_OZMA:
@@ -3869,7 +3906,7 @@ bool make_attack_spell(int m_idx)
 				msg_format("%^s mumbles powerfully.", m_name);
 #endif
 
-				inc_area_elem(m_idx, ELEM_EARTH, 99, 2, FALSE);
+				inc_area_elem(m_idx, ELEM_EARTH, 990, 2, FALSE);
 				break;
 
 			case MON_VOLAC:
@@ -3923,7 +3960,7 @@ bool make_attack_spell(int m_idx)
 				msg_format("%^s mumbles powerfully.", m_name);
 #endif
 
-				inc_area_elem(m_idx, ELEM_AQUA, 99, 2, FALSE);
+				inc_area_elem(m_idx, ELEM_AQUA, 990, 2, FALSE);
 				break;
 
 			case MON_BALZEPHO:
@@ -4284,7 +4321,14 @@ bool make_attack_spell(int m_idx)
 
 			switch (m_ptr->r_idx)
 			{
-			case MON_THORONDOR:
+			case MON_DAGDA:
+                case MON_ASMODE:
+                case MON_DIABLO:
+                case MON_DEMUNZA:
+                    for (k = 0; k < 4; k++)
+                        count += summon_specific(m_idx, y, x, rlev, SUMMON_OGRES, PM_ALLOW_GROUP);
+                    break;
+                case MON_THORONDOR:
 			case MON_GWAIHIR:
 			case MON_MENELDOR:
 				{
@@ -5400,6 +5444,72 @@ bool make_attack_spell(int m_idx)
 
 			dam = rlev + 70;
 			breath(y, x, m_idx, GF_DISINTEGRATE, dam, 4, FALSE, FALSE);
+			break;
+		}
+
+		/* RFA_BR_PURE_ELEM */
+		case 288+25:
+		{
+			int pure_elem_typ = GF_GODLY_SPEAR;
+			cptr pure_elem_desc = "(?)";
+
+			if ((x != px) || (y != py)) return (FALSE);
+
+			if (get_cur_melem(m_ptr) < ELEM_FIRE || get_cur_melem(m_ptr) > ELEM_WIND) return FALSE;
+
+			switch (get_cur_melem(m_ptr))
+			{
+			case ELEM_FIRE:
+				pure_elem_typ = GF_PURE_FIRE;
+#ifdef JP
+				pure_elem_desc = "*火炎*";
+#else
+				pure_elem_desc = "*fire*";
+#endif
+				break;
+			case ELEM_AQUA:
+				pure_elem_typ = GF_PURE_AQUA;
+#ifdef JP
+				pure_elem_desc = "*水*";
+#else
+				pure_elem_desc = "*aqua*";
+#endif
+				break;
+			case ELEM_EARTH:
+				pure_elem_typ = GF_PURE_EARTH;
+#ifdef JP
+				pure_elem_desc = "*大地*";
+#else
+				pure_elem_desc = "*earth*";
+#endif
+				break;
+			case ELEM_WIND:
+				pure_elem_typ = GF_PURE_WIND;
+#ifdef JP
+				pure_elem_desc = "*風*";
+#else
+				pure_elem_desc = "*wind*";
+#endif
+				break;
+			}
+
+			disturb(1, 0);
+#ifdef JP
+			if (blind) msg_format("%^sが何かのブレスを吐いた。", m_name);
+#else
+			if (blind) msg_format("%^s breathes.", m_name);
+#endif
+
+#ifdef JP
+			else msg_format("%^sが%sのブレスを吐いた。", m_name, pure_elem_desc);
+#else
+			else msg_format("%^s breathes %s.", m_name, pure_elem_desc);
+#endif
+
+			dam = MIN(m_ptr->hp / 3, 700);
+			sound(SOUND_BREATH);
+			breath(y, x, m_idx, pure_elem_typ, dam, 0, TRUE, FALSE);
+			m_ptr->energy_need += 2 * ENERGY_NEED();
 			break;
 		}
 

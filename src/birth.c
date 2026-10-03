@@ -494,6 +494,8 @@ static void player_wipe(void)
 	mw_diff_to_melee = 0;
 
 
+	random_unique_reset();
+
 	/* Reset the "monsters" */
 	for (i = 1; i < max_r_idx; i++)
 	{
@@ -1106,7 +1108,7 @@ static bool get_player_race(void)
 	for (i = 0; i < max_p_idx; i++)
 	{
 		if (((race_info[i].r_flags & PRF_SEX_MALE) && (p_ptr->psex == SEX_FEMALE))
-			|| ((race_info[i].r_flags == PRF_SEX_FEMALE) && (p_ptr->psex == SEX_MALE))
+			|| ((race_info[i].r_flags & PRF_SEX_FEMALE) && (p_ptr->psex == SEX_MALE))
 			|| (race_info[i].r_flags & PRF_EVOLUTION))
 			continue;
 
@@ -1892,7 +1894,7 @@ static bool player_birth_full(void)
 /*
  * Helper function for 'player_birth()'
  */
-static bool player_birth_quick(bool prepare_astral)
+static bool player_birth_quick(bool prepare_astral, cptr quick_name)
 {
 	runeweapon_type *runeweapon = &runeweapon_list[1];
 	bool illegal_generated = FALSE;
@@ -1951,6 +1953,7 @@ static bool player_birth_quick(bool prepare_astral)
 		case 'Y':
 		case 'y':
 			load_prev_data(FALSE);
+            if (!prepare_astral) my_strcpy(player_name, quick_name, sizeof(player_name));
 
 			if (prepare_astral)
 			{
@@ -2064,9 +2067,15 @@ void player_birth(void)
 {
 	int i, j;
 	char buf[80];
+    char quick_name[32];
 	bool allow_astral_mode;
 	s32b ancestor_au[MAX_GOLD + 1];
 
+    /* Quick start reuses the founding character's birth data, not the
+     * companion who happened to be active when the previous game ended. */
+    my_strcpy(quick_name,
+        party_count && party_active != 0 && party_members[0].name[0] ?
+        party_members[0].name : player_name, sizeof(quick_name));
 	party_reset();
 	playtime = 0;
 
@@ -2120,11 +2129,11 @@ void player_birth(void)
 		/* Astral mode creation */
 		if (allow_astral_mode)
 		{
-			if (player_birth_quick(TRUE)) break;
+			if (player_birth_quick(TRUE, quick_name)) break;
 		}
 
 		/* Quick creation */
-		if (player_birth_quick(FALSE)) break;
+		if (player_birth_quick(FALSE, quick_name)) break;
 
 		/* Roll up a new character */
 		if (player_birth_full()) break;
@@ -2328,7 +2337,7 @@ void dump_yourself(FILE *fff)
 #endif
 
 				fprintf(fff, "ÂÐ¾ÝÉð´ï:");
-				for (j = 1; j <= MAX_WT; j++)
+				for (j = 1; j < MAX_WT; j++)
 				{
 					if (weapon_type_bit(j) & sb_ptr->weapon_type) fprintf(fff, " %s", weapon_skill_name[j]);
 				}

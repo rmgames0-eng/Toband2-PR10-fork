@@ -1094,6 +1094,16 @@ bool build_tunnel2(int x1, int y1, int x2, int y2, int type, int cutoff)
 			c_ptr = &cave[y3][x3];
 		}
 
+        /* A displaced midpoint may coincide with an endpoint or lengthen a
+         * child segment. Always shorten both children before recursing. */
+        if (distance(x1, y1, x3, y3) >= length ||
+            distance(x3, y3, x2, y2) >= length)
+        {
+            x3 = (x1 + x2) / 2;
+            y3 = (y1 + y2) / 2;
+            c_ptr = &cave[y3][x3];
+        }
+
 		if (is_floor_grid(c_ptr))
 		{
 			if (build_tunnel2(x1, y1, x3, y3, type, cutoff))

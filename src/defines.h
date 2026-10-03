@@ -35,7 +35,7 @@
 /*
  * Name of the version/variant
  */
-#define VERSION_NAME "TOband2"
+#define VERSION_NAME "TOband-R3"
 
 /*
  * "Program Version Number" of the game
@@ -62,7 +62,7 @@
 #define T_VER_MAJOR 0
 #define T_VER_MINOR 10
 #define T_VER_PATCH 0
-#define T_VER_EXTRA 1
+#define T_VER_EXTRA 2
 
 
 #define ANGBAND_2_8_1
@@ -132,6 +132,7 @@
 #define quest_is_fixed(Q_IDX) (((Q_IDX) < MIN_RANDOM_QUEST) || ((Q_IDX) > MAX_RANDOM_QUEST_ASTRAL))
 
 #define QUEST_GUNNER         3
+#define QUEST_VAULT          4
 #define QUEST_LANCELOT       8
 #define QUEST_DOLGARUA       9
 #define QUEST_DEATH         13
@@ -783,7 +784,9 @@
 #define CLASS_ENIGMAHUNTER      37
 #define CLASS_RANGER            38
 
-#define MAX_CLASS               39
+#define CLASS_DARK_ELEMENT      39
+#define CLASS_TEMPLECOMMAND     40
+#define MAX_CLASS               41
 
 
 
@@ -1013,6 +1016,7 @@
 /* Buildings */
 #define FEAT_BLDG_HEAD          0x80
 #define FEAT_BLDG_TAIL          0x9F
+#define FEAT_PURGATORY_ALTAR    (FEAT_BLDG_HEAD + 28)
 
 #define FEAT_TOWN               0xC0
 #define FEAT_ENTRANCE           0xC1
@@ -1034,6 +1038,8 @@
 #define FEAT_TRAP_PIRANHA       0xCA
 
 #define FEAT_DENEB_SHOP         0xCB
+/* Display-only mimic for a walkable chaos gate. */
+#define FEAT_CHAOS_GATE         0xCC
 
 /*
  * Wilderness terrains
@@ -1272,6 +1278,8 @@
 #define ART_ASSAULT              176
 #define ART_FRAME_BOW            196
 #define ART_LIGHTNING_BOW        198
+#define ART_DREAM_CROWN          204
+#define ART_ARCHANGEL_WINGS      205
 
 /* Arrows */
 #define ART_ALOSER_ARROW         131
@@ -2519,7 +2527,7 @@
 #define PR_DUNGEON      0x00010000L     /* Display Extra (Blind) */
 #define PR_UHEALTH      0x00020000L     /* Display Uma Health Bar */
 #define PR_WEATHER      0x00040000L     /* Display Weather */
-#define PR_XXX2         0x00080000L     /* Display Extra (Poisoned) */
+#define PR_FLOOR        0x00080000L /* Current terrain bonuses and elements */
 #define PR_STATE        0x00100000L     /* Display Extra (State) */
 #define PR_SPEED        0x00200000L     /* Display Extra (Speed) */
 #define PR_XXX3         0x00400000L
@@ -2539,6 +2547,7 @@
 #define PW_INVEN        0x00000001L     /* Display inven/equip */
 #define PW_EQUIP        0x00000002L     /* Display equip/inven */
 #define PW_SPELL        0x00000004L     /* Display spell list */
+#define PW_MONLIST      0x00000010L     /* Display sensed monsters */
 #define PW_PLAYER       0x00000008L     /* Display character */
 /* xxx */
 /* xxx */
@@ -2658,6 +2667,7 @@
 #define SUMMON_AQUA                 34
 #define SUMMON_EARTH                35
 #define SUMMON_WIND                 36
+#define SUMMON_OGRES                37
 #define SUMMON_ARMAGE_GOOD          66
 #define SUMMON_ARMAGE_EVIL          67
 
@@ -2766,8 +2776,11 @@
 #define GF_CAVE_TEMP        99
 #define GF_WATER_FLOW      100
 #define GF_LAVA_FLOW       101
+#define GF_BRAINSTORM      102
 
-#define MAX_GF             102
+#define GF_UMBRA           103
+
+#define MAX_GF             104
 
 /*
  * Some things which induce learning
@@ -2807,6 +2820,7 @@
 #define DAMAGE_ATTACK   0x00000008
 #define DAMAGE_NOESCAPE 0x00000010
 #define DAMAGE_USELIFE  0x00000020
+#define DAMAGE_INSTANT  0x00000080  /* Lethal effect, unaffected by easy mode */
 #define DAMAGE_ELEC     0x00000040
 
 
@@ -3072,7 +3086,18 @@
 #define TR_ALIGN_LNC          116     /* Fake flag - Affect Alignment (LNC) */
 #define TR_ALIGN_GNE          117     /* Fake flag - Affect Alignment (GNE) */
 
-#define TR_FLAG_MAX           118
+#define TR_CLASS_GENERAL      118     /* Enables General class change while equipped */
+#define TR_CLASS_HIGHWITCH    119     /* Enables High-Witch class change while equipped */
+
+#define TR_CLASS_WHITEKNIGHT  120
+#define TR_CLASS_TEMPLEKNIGHT 121
+
+#define TR_CLASS_RELICSKNIGHT 122
+
+#define TR_CLASS_LORD         123
+#define TR_CLASS_ANGELKNIGHT  124
+
+#define TR_FLAG_MAX           125
 #define TR_FLAG_SIZE            4
 
 
@@ -3099,6 +3124,18 @@
 #define TRG_ZENOBIAN            0x00100000L     /* Zenobian Item */
 #define TRG_LODIS               0x00200000L     /* Lodis Item */
 
+
+/* Class-entry properties of item templates (no per-object save expansion). */
+#define TRG_CLASS_GUNNER 0x00400000UL
+#define TRG_CLASS_NINJAMASTER 0x00800000UL
+#define TRG_CLASS_ARCHMAGE 0x01000000UL
+#define TRG_CLASS_FREYA 0x02000000UL
+#define TRG_CLASS_CRESCENT 0x04000000UL
+#define TRG_CLASS_VAMPIRE 0x08000000UL
+#define TRG_CLASS_MEDIUM 0x10000000UL
+#define TRG_CLASS_SUCCUBUS 0x20000000UL
+#define TRG_CLASS_GRAPPLER 0x40000000UL
+#define TRG_CLASS_ENIGMAHUNTER 0x80000000UL
 
 #define MAX_CURSE 17
 
@@ -3232,7 +3269,7 @@
 #define RF1_FORCE_MAXHP         0x00000200  /* Start with max hitpoints */
 #define RF1_FORCE_SLEEP         0x00000400  /* Start out sleeping */
 #define RF1_NO_ESCORT           0x00000800  /* Never be escort */
-#define RF1_RAND_U_NAME         0x00001000  /* With Random name */
+#define RF1_RAND_U_NAME         0x00001000  /* Retired named variant; save compatibility only */
 #define RF1_FRIENDS             0x00002000  /* Arrive with some friends */
 #define RF1_ESCORT              0x00004000  /* Arrive with an escort */
 #define RF1_ESCORTS             0x00008000  /* Arrive with some escorts */
@@ -3507,6 +3544,7 @@
 #define RFA_S_HI_DEMON          0x00400000  /* Summon Major Demon */
 #define RFA_BA_DISI             0x00800000  /* Disintegration */
 #define RFA_PURE_ELEM_BEAM      0x01000000  /* Pure Element Beam */
+#define RFA_BR_PURE_ELEM        0x02000000  /* Breathe current pure element */
 
 /*
  * Monster resistance info
@@ -3680,7 +3718,7 @@
     0L
 
 #define RFA_BREATH_MASK \
-	(RFA_BR_PURE_FIRE | RFA_BR_PURE_AQUA | RFA_BR_PURE_EARTH | RFA_BR_PURE_WIND)
+	(RFA_BR_PURE_ELEM | RFA_BR_PURE_FIRE | RFA_BR_PURE_AQUA | RFA_BR_PURE_EARTH | RFA_BR_PURE_WIND)
 
 
 /*
@@ -3747,7 +3785,7 @@
 	 RF6_DARKNESS | RF6_TRAPS | RF6_FORGET)
 
 #define RFA_ATTACK_MASK \
-	(RFA_FIRE_STORM | RFA_AQUA_STORM | RFA_EARTH_STORM | RFA_WIND_STORM | \
+	(RFA_BR_PURE_ELEM | RFA_FIRE_STORM | RFA_AQUA_STORM | RFA_EARTH_STORM | RFA_WIND_STORM | \
 	 RFA_BR_PURE_FIRE | RFA_BR_PURE_AQUA | RFA_BR_PURE_EARTH | RFA_BR_PURE_WIND | \
 	 RFA_PETRO_CLOUD | RFA_SAND_STORM | RFA_SALAMANDER | RFA_FENRER | \
 	 RFA_GNOME | RFA_THUNDERBIRD | RFA_IGNIS_FATUUS | RFA_DARK_LORE | \
@@ -3796,7 +3834,7 @@
 	(RF6_SPECIAL)
 
 #define RFA_NOMAGIC_MASK \
-	(RFA_BR_PURE_FIRE | RFA_BR_PURE_AQUA | RFA_BR_PURE_EARTH | RFA_BR_PURE_WIND | \
+	(RFA_BR_PURE_ELEM | RFA_BR_PURE_FIRE | RFA_BR_PURE_AQUA | RFA_BR_PURE_EARTH | RFA_BR_PURE_WIND | \
 	 RFA_STONE_GAZE)
 
 
@@ -4076,7 +4114,7 @@
  * Line 6-7 -- shop doors
  */
 #define cave_perma_bold(Y,X) \
-	(((cave[Y][X].feat >= FEAT_PERM_EXTRA) && \
+	((IS_DEMON_GATE(&cave[Y][X])) || ((cave[Y][X].feat >= FEAT_PERM_EXTRA) && \
 	  (cave[Y][X].feat <= FEAT_PERM_SOLID)) || \
 	  (cave[Y][X].feat == FEAT_LESS) || \
 	  (cave[Y][X].feat == FEAT_MORE) || \
@@ -4125,7 +4163,7 @@
  * Grid based version of "cave_perma_bold()"
  */
 #define cave_perma_grid(C) \
-	((((C)->feat >= FEAT_PERM_EXTRA) && \
+	((IS_DEMON_GATE(C)) || (((C)->feat >= FEAT_PERM_EXTRA) && \
 	  ((C)->feat <= FEAT_PERM_SOLID)) || \
 	  ((C)->feat == FEAT_LESS) || \
 	  ((C)->feat == FEAT_MORE) || \
@@ -4430,7 +4468,8 @@ extern int PlayerUID;
 #define BACT_COMPOSITE_ITEM         58
 #define BACT_CHANGE_SUCCUBUS        59
 
-#define MAX_BACT                    60
+#define BACT_DARK_CONTRACT          60
+#define MAX_BACT                    61
 
 /*
  * Quest status
@@ -4722,6 +4761,18 @@ extern int PlayerUID;
 #define MON_JORMUNGAND    854
 #define MON_VICE          855
 #define MON_REKKUU        856
+/* Reusable random-unique slots, with names stored in reserved buffer space. */
+#define MON_RANDOM_UNIQUE_1 989
+#define MON_RANDOM_UNIQUE_2 990
+#define MON_RANDOM_UNIQUE_3 991
+#define RANDOM_UNIQUE_NAME_SIZE 128
+#define IS_RANDOM_UNIQUE(i) ((i) >= MON_RANDOM_UNIQUE_1 && (i) <= MON_RANDOM_UNIQUE_3)
+
+#define MON_ASMODE        986
+#define MON_DAGDA         987
+#define MON_DEMUNZA       988
+#define MON_OGRE_DARK_LORD 941
+#define MON_DIABLO        985
 #define MON_NYBBAS        858
 #define MON_BERSALIA      859
 #define MON_LANCELOT      860
@@ -4794,6 +4845,7 @@ extern int PlayerUID;
 #define PY_ATTACK_3DAN     4
 #define PY_ATTACK_PENET    5
 #define PY_ATTACK_WHIP     6
+#define PY_ATTACK_TEMPLE   7
 
 #define PY_THROW_CHOSEN        0x0001
 #define PY_THROW_BOOMERANG     0x0002
@@ -4863,7 +4915,7 @@ extern int PlayerUID;
 #define DUNGEON_GRAVE       6
 #define DUNGEON_SWANSEA     7
 #define DUNGEON_MT_WEOBLEY  8
-#define DUNGEON_HELL_WAY    9
+#define DUNGEON_DEMON       9
 #define DUNGEON_HEAVEN_WAY 10
 #define DUNGEON_MARSHLAND  11
 #define DUNGEON_BRIGANTES  12
@@ -5125,7 +5177,7 @@ extern int PlayerUID;
 #define WT_BIT_BOW         0x00002000
 #define WT_BIT_GUN         0x00004000
 
-#define weapon_type_bit(wt) (0x00000001L << ((wt) - 1))
+#define weapon_type_bit(wt) (((wt) > WT_NONE && (wt) < MAX_WT) ? (0x00000001UL << ((wt) - 1)) : 0UL)
 
 #define MAX_WT 16
 
@@ -5194,6 +5246,8 @@ extern int PlayerUID;
 #define EVENT_CLOSE_AIR_GARDEN           0x00000010
 
 
+#define IN_DEMON_GATE() ((dungeon_type == DUNGEON_RUINS) && (dun_level == d_info[DUNGEON_RUINS].maxdepth))
+#define IS_DEMON_GATE(C) ((C)->feat == FEAT_FLOOR && (C)->mimic == FEAT_CHAOS_GATE)
 #define IN_HEAVEN_GATE() ((dungeon_type == DUNGEON_HEAVEN_WAY) && (dun_level == d_info[dungeon_type].maxdepth))
 
 #define IS_MERMAID_IN_WATER() \

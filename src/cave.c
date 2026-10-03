@@ -488,7 +488,7 @@ bool cave_valid_bold(int y, int x)
 
 
 	/* Forbid perma-grids */
-	if (cave_perma_grid(c_ptr)) return (FALSE);
+	if (cave_perma_grid(c_ptr) || IS_DEMON_GATE(c_ptr)) return (FALSE);
 
 	/* Check objects */
 	for (this_o_idx = c_ptr->o_idx; this_o_idx; this_o_idx = next_o_idx)
@@ -523,7 +523,7 @@ bool cave_valid_grid(cave_type *c_ptr)
 
 
 	/* Forbid perma-grids */
-	if (cave_perma_grid(c_ptr)) return (FALSE);
+	if (cave_perma_grid(c_ptr) || IS_DEMON_GATE(c_ptr)) return (FALSE);
 
 	/* Check objects */
 	for (this_o_idx = c_ptr->o_idx; this_o_idx; this_o_idx = next_o_idx)
@@ -1239,6 +1239,7 @@ void map_info(int y, int x, byte *ap, char *cp, byte *tap, char *tcp)
 		case FEAT_ENTRANCE:
 		case FEAT_ENTRANCE_UPWARD:
 		case FEAT_BETWEEN:
+		case FEAT_CHAOS_GATE:
 			feat_priority = 35;
 			break;
 
@@ -1808,6 +1809,8 @@ void display_dungeon(void)
  */
 void lite_spot(int y, int x)
 {
+	if (y == py && x == px) p_ptr->redraw |= PR_FLOOR;
+
 	/* Redraw if on screen */
 	if (panel_contains(y, x) && in_bounds2(y, x))
 	{

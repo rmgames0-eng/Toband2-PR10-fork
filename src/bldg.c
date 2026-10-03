@@ -126,6 +126,9 @@ static void show_building(building_type* bldg)
 				}
 			}
 
+            if (bldg->actions[i] == BACT_DARK_CONTRACT && !party_can_dark_contract())
+                action_color = TERM_L_DARK;
+
 			sprintf(tmp_str," %c) %s %s", bldg->letters[i], bldg->act_names[i], buff);
 			c_put_str(action_color, tmp_str, 19+(i/2), 35*(i%2));
 		}
@@ -2049,6 +2052,21 @@ static bool inn_comm(int cmd)
 /*
  * Display quest information
  */
+/* Pick once on acceptance; quest.k_idx is already saved for active quests. */
+bool choose_vault_artifact(void)
+{
+    static const int candidates[] = {73,88,90,70,158,99,108,107,152,58,76,100,179,96};
+    int available[14], count = 0, i, chosen;
+    if (quest[QUEST_VAULT].status != QUEST_STATUS_UNTAKEN) return TRUE;
+    for (i = 0; i < 14; i++)
+        if (!a_info[candidates[i]].cur_num) available[count++] = candidates[i];
+    if (!count) return FALSE;
+    chosen = available[randint0(count)];
+    quest[QUEST_VAULT].k_idx = chosen;
+    a_info[chosen].gen_flags |= TRG_QUESTITEM;
+    return TRUE;
+}
+
 static void get_questinfo(int questnum)
 {
 	int     i;
@@ -2234,6 +2252,16 @@ static void castle_quest(void)
 			return;
 		}
 
+        if (q_index == QUEST_VAULT && !choose_vault_artifact())
+        {
+#ifdef JP
+            msg_print("宝物庫に残された対象の武器はありません。");
+#else
+            msg_print("None of the requested weapons remain in the vault.");
+#endif
+            return;
+        }
+
 #ifdef JP
 		msg_print("クエストの依頼を受けました。");
 #else
@@ -2241,6 +2269,7 @@ static void castle_quest(void)
 #endif
 
 		q_ptr->status = QUEST_STATUS_TAKEN;
+        if (q_index == QUEST_VAULT) get_questinfo(q_index);
 
 		switch (q_index)
 		{
@@ -3415,7 +3444,7 @@ static void get_temple_blow(void)
 
 		prt("", TABLE_ROW, CLASS_AUX_COL);
 		strcpy(s, "対象武器:");
-		for (i = 1; i <= MAX_WT; i++)
+		for (i = 1; i < MAX_WT; i++)
 		{
 			if (weapon_type_bit(i) & sb_ptr->weapon_type)
 			{
@@ -3587,6 +3616,7 @@ static bool change_class(int cmd)
 	int i, total_max_clev = 0, experienced_classes = 0;
 	byte new_class = 0;
 	byte old_pclass = p_ptr->pclass;
+    bool old_can_save = can_save;
 	cexp_info_type *cexp_ptr;
 	char buf[80];
 
@@ -3611,6 +3641,9 @@ static bool change_class(int cmd)
 	case BACT_CHANGE_SUCCUBUS:
 		new_class = CLASS_SUCCUBUS;
 		break;
+    case BACT_DARK_CONTRACT:
+        new_class = CLASS_DARK_ELEMENT;
+        break;
 	}
 
 	if (pclass_is_(new_class))
@@ -3652,6 +3685,17 @@ static bool change_class(int cmd)
 			}
 		}
 
+        if (new_class == CLASS_DARK_ELEMENT)
+        {
+            can_save = FALSE;
+            if (!party_dark_sacrifice())
+            {
+                can_save = old_can_save;
+                clear_bldg(4,18);
+                return FALSE;
+            }
+        }
+        else
 #ifdef JP
 		if (!get_check("クラスチェンジしますか？"))
 #else
@@ -3709,6 +3753,9 @@ static bool change_class(int cmd)
 		p_ptr->cexpfact[p_ptr->pclass] = class_info[p_ptr->pclass].c_exp + 50 * experienced_classes + total_max_clev / 5 * 10;
 	}
 
+    if (new_class == CLASS_DARK_ELEMENT)
+        for (i = 0; i < ETHNICITY_NUM; i++) change_chaos_frame(i, -300);
+
 	/* Notice stuff */
 	notice_stuff();
 
@@ -3742,6 +3789,8 @@ static bool change_class(int cmd)
 
 	clear_bldg(4,18);
 
+    party_capture();
+    can_save = old_can_save;
 	return TRUE;
 }
 
@@ -5095,6 +5144,7 @@ static void bldg_process_command(building_type *bldg, int i)
 	case BACT_JOIN_LODIS_KNIGHTS:
 	case BACT_JOIN_ZENOBIAN_KNIGHTS:
 	case BACT_CHANGE_SUCCUBUS:
+    case BACT_DARK_CONTRACT:
 		change_class(bact);
 		break;
 	case BACT_COMPOSITE_ITEM:

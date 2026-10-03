@@ -8,3 +8,8 @@ B:30:N:╦т┬▓:╠д─ъ:╦т┬▓:1
 B:$30:A:0:Compose weapon:0:c:59:0
 B:30:A:0:епеще╣е┴езеєе╕:0:c:59:0
 
+
+B:$28:N:Purgatory Altar:Voice from beyond:Demon:0
+B:28:N:╬√╣Ўд╬║╫├┼:╦т│жд╬└╝:╦т┬▓:0
+B:$28:A:0:Make a pact with the demon god:0:c:60:0
+B:28:A:0:╦т│жд╬┐└д╚╖└╠єд╣ды:0:c:60:0

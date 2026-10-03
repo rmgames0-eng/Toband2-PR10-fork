@@ -3,6 +3,7 @@
 /* Purpose: Do everything for each spell */
 
 #include "angband.h"
+#include "party.h"
 
 
 /*
@@ -444,7 +445,7 @@ static cptr do_magery_spell(int spell, int mode)
 	bool cast = (mode == SPELL_CAST) ? TRUE : FALSE;
 
 	int dir;
-	int mlev = p_ptr->magic_exp[REALM_MAGERY]/10;
+	int mlev = party_spell_caster()->magic_exp[REALM_MAGERY]/10;
 
 	switch (spell)
 	{
@@ -1084,8 +1085,8 @@ static cptr do_fire_spell(int spell, int mode)
 	bool cast = (mode == SPELL_CAST) ? TRUE : FALSE;
 
 	int dir;
-	int mlev = p_ptr->magic_exp[REALM_FIRE]/10;
-	int pstat = p_ptr->stat_use[A_INT];
+	int mlev = party_spell_caster()->magic_exp[REALM_FIRE]/10;
+	int pstat = party_spell_caster()->stat_use[A_INT];
 
 	switch (spell)
 	{
@@ -1129,6 +1130,8 @@ static cptr do_fire_spell(int spell, int mode)
 			if (pstat >= (18 + 100)) amount++;
 			if (pstat >= (18 + 150)) amount++;
 			if (pstat >= (18 + 200)) amount++;
+
+			amount *= 10;
 
 			if (info) return info_radius(rad);
 
@@ -1487,8 +1490,8 @@ static cptr do_aqua_spell(int spell, int mode)
 	bool cast = (mode == SPELL_CAST) ? TRUE : FALSE;
 
 	int dir;
-	int mlev = p_ptr->magic_exp[REALM_AQUA]/10;
-	int pstat = p_ptr->stat_use[A_INT];
+	int mlev = party_spell_caster()->magic_exp[REALM_AQUA]/10;
+	int pstat = party_spell_caster()->stat_use[A_INT];
 
 	switch (spell)
 	{
@@ -1509,6 +1512,8 @@ static cptr do_aqua_spell(int spell, int mode)
 			if (pstat >= (18 + 150)) amount++;
 			if (pstat >= (18 + 200)) amount++;
 
+
+			amount *= 10;
 
 			if (info) return info_radius(rad);
 
@@ -1875,8 +1880,8 @@ static cptr do_earth_spell(int spell, int mode)
 	bool cast = (mode == SPELL_CAST) ? TRUE : FALSE;
 
 	int dir;
-	int mlev = p_ptr->magic_exp[REALM_EARTH]/10;
-	int pstat = p_ptr->stat_use[A_INT];
+	int mlev = party_spell_caster()->magic_exp[REALM_EARTH]/10;
+	int pstat = party_spell_caster()->stat_use[A_INT];
 
 	switch (spell)
 	{
@@ -1922,6 +1927,8 @@ static cptr do_earth_spell(int spell, int mode)
 			if (pstat >= (18 + 150)) amount++;
 			if (pstat >= (18 + 200)) amount++;
 
+
+			amount *= 10;
 
 			if (info) return info_radius(rad);
 
@@ -2224,8 +2231,8 @@ static cptr do_wind_spell(int spell, int mode)
 	bool cast = (mode == SPELL_CAST) ? TRUE : FALSE;
 
 	int dir;
-	int mlev = p_ptr->magic_exp[REALM_WIND]/10;
-	int pstat = p_ptr->stat_use[A_INT];
+	int mlev = party_spell_caster()->magic_exp[REALM_WIND]/10;
+	int pstat = party_spell_caster()->stat_use[A_INT];
 
 	switch (spell)
 	{
@@ -2270,6 +2277,8 @@ static cptr do_wind_spell(int spell, int mode)
 			if (pstat >= (18 + 150)) amount++;
 			if (pstat >= (18 + 200)) amount++;
 
+
+			amount *= 10;
 
 			if (info) return info_radius(rad);
 
@@ -2558,8 +2567,8 @@ static cptr do_holy_spell(int spell, int mode)
 	bool cast = (mode == SPELL_CAST) ? TRUE : FALSE;
 
 	int dir;
-	int mlev = p_ptr->magic_exp[REALM_HOLY]/10;
-	int pstat = p_ptr->stat_use[A_WIS];
+	int mlev = party_spell_caster()->magic_exp[REALM_HOLY]/10;
+	int pstat = party_spell_caster()->stat_use[A_WIS];
 
 	switch (spell)
 	{
@@ -3122,22 +3131,14 @@ static cptr do_holy_spell(int spell, int mode)
 	case 23:
 #ifdef JP
 		if (name) return "リザレクション";
-		if (desc) return "一定時間、死亡しても完全復活できる能力を得る。全MPを消費する。";
+		if (desc) return "死亡した仲間1人を選び、HP全快・MP0で蘇生する。装備は戻らない。";
 #else
 		if (name) return "Resurrection";
-		if (desc) return "Gives resurrection for a while.";
+		if (desc) return "Revives one dead companion with full HP and no MP. Equipment is not restored.";
 #endif
     
-		{
-			int base = 6;
-
-			if (info) return info_duration(base, base);
-
-			if (cast)
-			{
-				set_tim_resurrection(base + randint1(base), FALSE);
-			}
-		}
+		if (info) return "";
+		if (cast && !party_resurrect()) return NULL;
 		break;
 
 
@@ -3155,7 +3156,7 @@ static cptr do_death_spell(int spell, int mode)
 	bool cast = (mode == SPELL_CAST) ? TRUE : FALSE;
 
 	int dir;
-	int mlev = p_ptr->magic_exp[REALM_DEATH]/10;
+	int mlev = party_spell_caster()->magic_exp[REALM_DEATH]/10;
 
 	switch (spell)
 	{
@@ -3500,11 +3501,13 @@ static cptr do_death_spell(int spell, int mode)
 		{
 			int amount = -4;
 			int rad = -((mlev / 10) - 1);
-			int pstat = p_ptr->stat_use[mp_ptr->spell_stat];
+			int pstat = party_spell_caster()->stat_use[mp_ptr->spell_stat];
 
 			if (pstat >= (18 + 100)) amount -= 2;
 			if (pstat >= (18 + 150)) amount -= 2;
 			if (pstat >= (18 + 200)) amount -= 2;
+
+			amount *= 10;
 
 			if (info) return info_power(amount);
 
@@ -3563,7 +3566,7 @@ static cptr do_death_spell(int spell, int mode)
 		{
 			int base = mlev;
 			int attacks = 1;
-			int pstat = p_ptr->stat_use[A_WIS];
+			int pstat = party_spell_caster()->stat_use[A_WIS];
 
 			if (pstat >= (18 + 100)) attacks++;
 			if (pstat >= (18 + 150)) attacks++;
@@ -3784,6 +3787,18 @@ static cptr do_death_spell(int spell, int mode)
 		}
 		break;
 
+    case 25:
+#ifdef JP
+        if (name) return "ネクロマンシー";
+        if (desc) return "死亡した仲間1人を選び、スケルトンかゴースト（各50%）に変えてHP全快・MP0で蘇生する。装備は戻らない。";
+#else
+        if (name) return "Necromancy";
+        if (desc) return "Revives a dead companion as a skeleton or ghost (50% each), with full HP and no MP. Equipment is not restored.";
+#endif
+        if (info) return "";
+        if (cast && !party_necromancy()) return NULL;
+        break;
+
 
 	}
 
@@ -3833,7 +3848,7 @@ static cptr do_symbiotic_spell(int spell, int mode)
 	bool cast = (mode == SPELL_CAST) ? TRUE : FALSE;
 
 	int dir;
-	int mlev = p_ptr->magic_exp[REALM_SYMBIOTIC]/10;
+	int mlev = party_spell_caster()->magic_exp[REALM_SYMBIOTIC]/10;
 
 	switch (spell)
 	{
@@ -4276,7 +4291,7 @@ static cptr do_witch_spell(int spell, int mode)
 	bool cast = (mode == SPELL_CAST) ? TRUE : FALSE;
 
 	int dir;
-	int mlev = p_ptr->magic_exp[REALM_WITCH]/10;
+	int mlev = party_spell_caster()->magic_exp[REALM_WITCH]/10;
 	int pstat;
 	s16b chosen_elem;
 
@@ -4314,7 +4329,7 @@ static cptr do_witch_spell(int spell, int mode)
     
 		{
 			int power, rad;
-			pstat = p_ptr->stat_use[A_CHR];
+			pstat = party_spell_caster()->stat_use[A_CHR];
 
 			if (pstat < (18 + 180))
 			{
@@ -4410,13 +4425,15 @@ static cptr do_witch_spell(int spell, int mode)
 		{
 			int amount = 2;
 			int rad = (mlev / 10) + 1;
-			pstat = p_ptr->stat_use[A_INT];
+			pstat = party_spell_caster()->stat_use[A_INT];
 
 			if (pstat >= (18 + 100)) amount++;
 			if (pstat >= (18 + 150)) amount++;
 			if (pstat >= (18 + 200)) amount++;
 
-			if (info) info_power(amount);
+			amount *= 10;
+
+			if (info) return info_power(amount);
 
 			if (cast)
 			{
@@ -4742,13 +4759,15 @@ static cptr do_witch_spell(int spell, int mode)
 		{
 			int amount = 4;
 			int rad = (mlev / 10) + 1;
-			pstat = p_ptr->stat_use[A_INT];
+			pstat = party_spell_caster()->stat_use[A_INT];
 
 			if (pstat >= (18 + 100)) amount += 2;
 			if (pstat >= (18 + 150)) amount += 2;
 			if (pstat >= (18 + 200)) amount += 2;
 
-			if (info) info_power(amount);
+			amount *= 10;
+
+			if (info) return info_power(amount);
 
 			if (cast)
 			{
@@ -4981,7 +5000,7 @@ static cptr do_witch_spell(int spell, int mode)
     
 		{
 			int base = 200 + mlev * 3;
-			pstat = p_ptr->stat_use[A_INT];
+			pstat = party_spell_caster()->stat_use[A_INT];
 
 			if (info) return info_damage(0, 0, base);
 
@@ -5074,7 +5093,7 @@ static cptr do_drakonite_spell(int spell, int mode)
 	bool info = (mode == SPELL_INFO) ? TRUE : FALSE;
 	bool cast = (mode == SPELL_CAST) ? TRUE : FALSE;
 
-	int mlev = p_ptr->magic_exp[REALM_DRAKONITE]/10;
+	int mlev = party_spell_caster()->magic_exp[REALM_DRAKONITE]/10;
 
 #ifdef JP
 	static const char s_dam[] = "損傷:";
@@ -5086,77 +5105,14 @@ static cptr do_drakonite_spell(int spell, int mode)
 	{
 	case 0:
 #ifdef JP
-		if (name) return "マーティライズ";
-		if (desc) return "今まで倒したユニーク・モンスターを復活させる。クエストで出現したユニーク・モンスターには無効。";
+        if (name) return "マーティライズ";
+        if (desc) return "自分の命を犠牲にして、死亡した仲間全員をHP全快・MP0で蘇生する。術者を死亡者として除外した後の上級職の人数・レベル制限を満たす必要がある。控えは使用できない。";
 #else
-		if (name) return "Martyrs";
-		if (desc) return "";
+        if (name) return "Martyrize";
+        if (desc) return "Sacrifices the active caster to revive all dead companions at full HP and zero MP, subject to the surviving party's class and level limits. Reserves cannot cast it.";
 #endif
-    
-		{
-			if (cast)
-			{
-				int i;
-				bool *no_revive;
-				bool revived = FALSE;
-
-				/* Allocate the "no_revive" array */
-				C_MAKE(no_revive, max_r_idx, bool);
-
-				/* Scan the random quests */
-				for (i = 1; i < max_quests; i++)
-				{
-					if (quest[i].r_idx) no_revive[quest[i].r_idx] = TRUE;
-				}
-
-				/* Scan the arena */
-				for (i = 0; i < MAX_ARENA_MONS + 4; i++)
-				{
-					no_revive[arena_info[i].r_idx] = TRUE;
-				}
-
-				/* Scan the monster races */
-				for (i = 0; i < max_r_idx; i++)
-				{
-					monster_race *r_ptr = &r_info[i];
-
-					if (!r_ptr->name) continue;
-
-					/* Unique monsters only */
-					if (!(r_ptr->flags1 & RF1_UNIQUE)) continue;
-
-					/* Questors don't revive */
-					if (r_ptr->flags1 & RF1_QUESTOR) continue;
-
-					/* Unique monster is alive, no need to revive */
-					if (r_ptr->max_num) continue;
-
-					/* This unique is stayed dead... */
-					if (no_revive[i]) continue;
-
-					/* The dead unique monster is come back!! */
-					r_ptr->max_num = 1;
-					revived = TRUE;
-				}
-
-				/* Free the "no_revive" array */
-				C_KILL(no_revive, max_r_idx, bool);
-
-				if (revived)
-				{
-	#ifdef JP
-					msg_format("葬った仇敵達が帰ってくるのを感じる。");
-	#else
-					msg_format("You feel slain foes coming back.");
-	#endif
-					/* Window stuff */
-					p_ptr->window |= (PW_MONSTER);
-
-					if (p_ptr->materialize_cnt < MAX_SHORT) p_ptr->materialize_cnt++;
-				}
-			}
-		}
-		break;
+        if (cast && !party_martyrize()) return NULL;
+        break;
 
 	case 1:
 #ifdef JP
@@ -5280,24 +5236,14 @@ static cptr do_drakonite_spell(int spell, int mode)
 	case 6:
 #ifdef JP
 		if (name) return "リーンカーネイト";
-		if (desc) return "全ての能力基本値、体力、MP、技能をいくらかの割合で引き継いだまま自分の最大レベルを1に戻す。";
+		if (desc) return "生存しているスケルトンかゴーストの仲間1人を人間に転生させる。能力基本値、体力、MP、技能の一部を引き継ぎ、種族・職業レベルを1に戻す。";
 #else
 		if (name) return "Reincarnate";
-		if (desc) return "Reincarnate.";
+		if (desc) return "Reincarnates a living skeleton or ghost companion as a level 1 human, retaining part of their abilities.";
 #endif
     
-		{
-			if (cast)
-			{
-#ifdef JP
-				if (!get_check("レベル1のキャラクタに転生します。よろしいですか？ ")) return NULL;
-#else
-				if (!get_check("Reincarnate as level 1 character. Are you sure? ")) return NULL;
-#endif
-				reincarnation();
-			}
-		}
-		break;
+        if (cast && !party_reincarnate()) return NULL;
+        break;
 
 	case 7:
 #ifdef JP
@@ -5349,8 +5295,8 @@ static cptr do_crusade_spell(int spell, int mode)
 	bool cast = (mode == SPELL_CAST) ? TRUE : FALSE;
 
 	int	dir;
-	int mlev = p_ptr->magic_exp[REALM_CRUSADE]/10;
-	int pstat = p_ptr->stat_use[A_WIS];;
+	int mlev = party_spell_caster()->magic_exp[REALM_CRUSADE]/10;
+	int pstat = party_spell_caster()->stat_use[A_WIS];;
 
 	switch (spell)
 	{
@@ -5957,7 +5903,7 @@ static cptr do_crusade_spell(int spell, int mode)
 /*
  * Do everything for each spell
  */
-cptr do_spell(int realm, int spell, int mode)
+static cptr do_spell_aux(int realm, int spell, int mode)
 {
 	switch (realm)
 	{
@@ -5975,4 +5921,46 @@ cptr do_spell(int realm, int spell, int mode)
 	}
 
 	return NULL;
+}
+
+/* Spells with a personal target (including worn equipment and movement).
+ * Offensive HP costs, failure backlash and explicit ally selection stay with
+ * their existing targets. Mixed healing/area spells heal the controlled actor. */
+static bool spell_targets_self(int realm, int spell)
+{
+    switch (realm)
+    {
+    case REALM_MAGERY:
+        return spell == 2 || spell == 6 || spell == 11 || spell == 13 || spell == 14 || spell == 17 || spell == 21 || spell == 23;
+    case REALM_FIRE:
+        return spell == 6 || spell == 7 || spell == 12;
+    case REALM_AQUA:
+        return spell == 3 || spell == 5 || spell == 8 || spell == 10;
+    case REALM_EARTH:
+        return spell == 5 || spell == 6 || spell == 8;
+    case REALM_WIND:
+        return spell == 2 || spell == 5 || spell == 10;
+    case REALM_HOLY:
+        return spell == 1 || spell == 3 || spell == 5 || spell == 6 || spell == 7 || spell == 11 || spell == 12 || spell == 13 || spell == 14 || spell == 15 || spell == 17 || spell == 22;
+    case REALM_DEATH:
+        return spell == 1 || spell == 2 || spell == 4 || spell == 13 || spell == 20 || spell == 23;
+    case REALM_WITCH:
+        return spell == 0 || spell == 3 || spell == 5 || spell == 6 || spell == 7 || spell == 12 || spell == 15 || spell == 16 || spell == 17 || spell == 21 || spell == 26 || spell == 28 || spell == 29 || spell == 30;
+    case REALM_DRAKONITE:
+        return spell == 7;
+    case REALM_CRUSADE:
+        return spell == 3 || spell == 4 || spell == 12 || spell == 14 || spell == 15 || spell == 16 || spell == 18 || spell == 21 || spell == 23 || spell == 24;
+    }
+    return FALSE;
+}
+
+cptr do_spell(int realm, int spell, int mode)
+{
+    int caster = -1;
+    cptr result;
+    if (mode == SPELL_CAST && spell_targets_self(realm, spell))
+        caster = party_spell_target_begin();
+    result = do_spell_aux(realm, spell, mode);
+    party_spell_target_end(caster);
+    return result;
 }

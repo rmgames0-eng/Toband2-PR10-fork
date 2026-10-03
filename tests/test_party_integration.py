@@ -24,14 +24,18 @@ with tempfile.TemporaryDirectory(prefix='toband-party-test-') as tmp:
     old_c, old_o = tmp/'legacy_save.c', tmp/'legacy_save.o'
     old_c.write_bytes(legacy)
     subprocess.run([str(GCC), *FLAGS, '-c', str(old_c), '-o', str(old_o)], check=True)
-    for old in (False, True):
-        linked = [old_o if old and p.stem == 'save' else p for p in objects]
+    v1_c, v1_o = tmp/'party_v1_save.c', tmp/'party_v1_save.o'
+    v1_c.write_bytes((ROOT/'src/save.c').read_bytes().replace(b'        /* Party v5: individual ailments and temporary effects. */\n#define PARTY_EFFECT(type, name) wr_##type(member->player.name);\n#include "party-effects.h"\n#undef PARTY_EFFECT', b'').replace(b'        /* Party v4: private weapon timers and brands. */\n        wr_s16b(member->player.magical_weapon);\n        wr_s16b(member->player.evil_weapon);\n        wr_u32b(member->player.special_attack & PARTY_WEAPON_BRANDS);', b'').replace(b'wr_byte(PARTY_SAVE_VERSION);', b'wr_byte(1);').replace(b'        wr_byte(member->dead);', b'').replace(b'        wr_byte(member->revived);', b''))
+    subprocess.run([str(GCC), *FLAGS, '-c', str(v1_c), '-o', str(v1_o)], check=True)
+    for mode in ('current', 'legacy', 'party-v1'):
+        old = mode == 'legacy'
+        linked = [(old_o if old else v1_o) if mode != 'current' and p.stem == 'save' else p for p in objects]
         exe = tmp / ('legacy.exe' if old else 'party.exe')
         subprocess.run([str(GCC), *FLAGS, str(ROOT/'tests/party_integration.c'),
                         *map(str, linked), '-o', str(exe), '-lwinmm', '-lcomdlg32',
                         '-lgdi32'], check=True)
         result = subprocess.run([str(exe), (BUILD/'lib').as_posix()+'/',
-                                 *(['legacy'] if old else [])], cwd=tmp,
+                                 *([mode] if mode != 'current' else [])], cwd=tmp,
                                 capture_output=True, timeout=30)
         print(result.stdout.decode('cp932', errors='replace'), end='')
         if result.returncode:

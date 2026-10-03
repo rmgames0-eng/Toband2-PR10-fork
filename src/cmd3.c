@@ -588,7 +588,7 @@ s = "おっと。";
 	if ((o_ptr->tval == TV_AMULET) && (o_ptr->sval == SV_AMULET_ALIGNMENT))
 	{
 		change_alignment_lnc();
-		
+
 		inven_item_increase(INVEN_NECK, -1);
 		inven_item_optimize(INVEN_NECK);
 #ifdef JP
@@ -706,23 +706,13 @@ void do_cmd_takeoff(void)
 	}
 
 
-	if (dungeon_type == DUNGEON_HEAVEN)
-	{
-		if (object_is_known(o_ptr) && (o_ptr->name1 == ART_BRUNHILD))
-		{
-			if (inven_cnt >= INVEN_PACK)
-			{
-				msg_print("天界から帰還するにはブリュンヒルドが必要です。");
-				return;
-			}
-		}
-	}
+
 
 
 	/* Item is cursed */
 	if (object_is_cursed(o_ptr))
 	{
-		if ((o_ptr->curse_flags & TRC_PERMA_CURSE) || !pclass_is_(CLASS_TERRORKNIGHT) || !pclass_is_(CLASS_RELICSKNIGHT))
+		if ((o_ptr->curse_flags & TRC_PERMA_CURSE) || (!pclass_is_(CLASS_TERRORKNIGHT) && !pclass_is_(CLASS_RELICSKNIGHT)))
 		{
 			/* Oops */
 #ifdef JP
@@ -824,14 +814,7 @@ void do_cmd_drop(void)
 	}
 
 
-	if (dungeon_type == DUNGEON_HEAVEN)
-	{
-		if (object_is_known(o_ptr) && (o_ptr->name1 == ART_BRUNHILD))
-		{
-			msg_print("天界から帰還するにはブリュンヒルドが必要です。");
-			return;
-		}
-	}
+
 
 
 	/* Hack -- Cannot remove cursed items */

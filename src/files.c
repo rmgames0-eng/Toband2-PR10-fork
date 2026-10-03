@@ -277,6 +277,7 @@ static named_num gf_desc[] =
 	{"GF_CAUSE_2",				GF_CAUSE_2			},
 	{"GF_CAUSE_3",				GF_CAUSE_3			},
 	{"GF_CAUSE_4",				GF_CAUSE_4			},
+	{"GF_UMBRA", GF_UMBRA},
 	{"GF_HAND_DOOM",			GF_HAND_DOOM		},
 	{"GF_DEATH_RAY",			GF_DEATH_RAY		},
 	{"GF_PSI",					GF_PSI				},
@@ -2093,14 +2094,60 @@ static cptr likert(int x, int y)
  *
  * This code is "imitated" elsewhere to "dump" a character sheet.
  */
+/* Same known-property estimate for the actor and each supporting member.
+ * Return hundredths of damage for one hit, without multiplying by blows. */
+static int player_average_hit(int hand)
+{
+    int damage, basedam;
+    object_type *o_ptr;
+    u32b flgs[TR_FLAG_SIZE];
+
+	damage = p_ptr->dis_to_d[hand]*100;
+
+	/* Average damage per hit */
+	o_ptr = &inventory[INVEN_RARM+hand];
+
+	if (o_ptr->k_idx)
+	{
+		object_kind *k_ptr = &k_info[o_ptr->k_idx];
+		bool known = object_is_known(o_ptr);
+		int known_dd = known ? o_ptr->dd : k_ptr->dd;
+		int known_ds = known ? o_ptr->ds : k_ptr->ds;
+
+		if (known) damage += o_ptr->to_d * 100;
+		basedam = ((known_dd + p_ptr->to_dd[hand]) * (known_ds + p_ptr->to_ds[hand] + 1)) * 50;
+		object_flags_known(o_ptr, flgs);
+		if (have_flag(flgs, TR_EXTRA_VORPAL))
+		{
+			/* vorpal blade */
+			basedam *= 5;
+			basedam /= 3;
+		}
+		else if (have_flag(flgs, TR_VORPAL))
+		{
+			/* vorpal flag only */
+			basedam *= 11;
+			basedam /= 9;
+		}
+		if (have_flag(flgs, TR_FORCE_WEAPON) && (p_ptr->csp > (known_dd * known_ds / 5)))
+			basedam = basedam * 7 / 2;
+
+		damage += basedam;
+	}
+
+	if (damage < 0) damage = 0;
+    return damage;
+}
+
 static void display_player_various(void)
 {
-	int         tmp, damage[2], blows1, blows2, i, basedam;
+	int         tmp, damage[2], blows1, blows2, i;
+	int support_count = 0, support_damage;
+	char blows_text[64], damage_text[64];
 	int			xthn, xthb, xfos, xsrh;
 	int			xdis, xdev, xsav, xstl;
 	cptr		desc;
 	char		raw_desc[10];
-	u32b flgs[TR_FLAG_SIZE];
 	int		shots, shot_frac;
 
 	object_type		*o_ptr;
@@ -2130,43 +2177,7 @@ static void display_player_various(void)
 		shot_frac = 0;
 	}
 
-	for(i = 0; i < 2; i++)
-	{
-		damage[i] = p_ptr->dis_to_d[i]*100;
-
-		/* Average damage per round */
-		o_ptr = &inventory[INVEN_RARM+i];
-
-		if (o_ptr->k_idx)
-		{
-			object_kind *k_ptr = &k_info[o_ptr->k_idx];
-			bool known = object_is_known(o_ptr);
-			int known_dd = known ? o_ptr->dd : k_ptr->dd;
-			int known_ds = known ? o_ptr->ds : k_ptr->ds;
-
-			if (known) damage[i] += o_ptr->to_d * 100;
-			basedam = ((known_dd + p_ptr->to_dd[i]) * (known_ds + p_ptr->to_ds[i] + 1)) * 50;
-			object_flags_known(o_ptr, flgs);
-			if (have_flag(flgs, TR_EXTRA_VORPAL))
-			{
-				/* vorpal blade */
-				basedam *= 5;
-				basedam /= 3;
-			}
-			else if (have_flag(flgs, TR_VORPAL))
-			{
-				/* vorpal flag only */
-				basedam *= 11;
-				basedam /= 9;
-			}
-			if (have_flag(flgs, TR_FORCE_WEAPON) && (p_ptr->csp > (known_dd * known_ds / 5)))
-				basedam = basedam * 7 / 2;
-
-			damage[i] += basedam;
-		}
-
-		if (damage[i] < 0) damage[i] = 0;
-	}
+	for (i = 0; i < 2; i++) damage[i] = player_average_hit(i);
 	blows1 = p_ptr->migite ? p_ptr->num_blow[0]: 0;
 	blows2 = p_ptr->hidarite ? p_ptr->num_blow[1] : 0;
 
@@ -2244,17 +2255,21 @@ static void display_player_various(void)
 	}
 	display_player_one_line(ENTRY_SKILL_DEVICE, desc, likert_color);
 
-	display_player_one_line(ENTRY_BLOWS, format("%d+%d", blows1, blows2), TERM_L_BLUE);
+    support_damage = party_support_damage(player_average_hit, &support_count) / 100;
+    if (blows2) strnfmt(blows_text, sizeof(blows_text), "%d+%d", blows1, blows2);
+    else strnfmt(blows_text, sizeof(blows_text), "%d", blows1);
+    if (support_count) strcat(blows_text, format(" (+%d援)", support_count));
+    display_player_one_line(ENTRY_BLOWS, blows_text, TERM_L_BLUE);
 
 	display_player_one_line(ENTRY_SHOTS, format("%d.%02d", shots, shot_frac), TERM_L_BLUE);
 
 
-	if ((damage[0]+damage[1]) == 0)
-		desc = "nil!";
-	else
-		desc = format("%d+%d", blows1 * damage[0] / 100, blows2 * damage[1] / 100);
-
-	display_player_one_line(ENTRY_AVG_DMG, desc, TERM_L_BLUE);
+    if (blows2)
+        strnfmt(damage_text, sizeof(damage_text), "%d+%d", blows1 * damage[0] / 100, blows2 * damage[1] / 100);
+    else
+        strnfmt(damage_text, sizeof(damage_text), "%d", blows1 * damage[0] / 100);
+    if (support_count) strcat(damage_text, format("+%d", support_damage));
+    display_player_one_line(ENTRY_AVG_DMG, damage_text, TERM_L_BLUE);
 
 	display_player_one_line(ENTRY_INFRA, format("%d feet", p_ptr->see_infra * 10), TERM_WHITE);
 	display_player_one_line(ENTRY_ANTI_MAGIC, format("%d feet", p_ptr->anti_magic_field * 10), TERM_WHITE);
@@ -2453,6 +2468,12 @@ static void player_immunity(u32b flgs[TR_FLAG_SIZE])
 	/* Clear */
 	for (i = 0; i < TR_FLAG_SIZE; i++)
 		flgs[i] = 0L;
+
+	if (pclass_is_(CLASS_DARK_ELEMENT))
+	{
+		add_flag(flgs, TR_RES_DARK);
+		add_flag(flgs, TR_RES_NETHER);
+	}
 
 	if (pclass_is_(CLASS_VAMPIRE))
 		add_flag(flgs, TR_RES_DARK);
@@ -4152,7 +4173,7 @@ static void dump_aux_monsters(FILE *fff)
 
 	int k;
 	long uniq_total = 0;
-	long norm_total = 0;
+	long norm_total = random_unique_kills;
 	s16b *who;
 
 	/* Sort by monster level */
@@ -4170,6 +4191,7 @@ static void dump_aux_monsters(FILE *fff)
 		for (k = 1; k < (max_r_idx + runeweapon_num); k++)
 		{
 			monster_race *r_ptr = &r_info[k];
+            if (IS_RANDOM_UNIQUE(k)) continue;
 
 			if (r_ptr->flags1 & RF1_UNIQUE)
 			{
@@ -4220,9 +4242,9 @@ static void dump_aux_monsters(FILE *fff)
 	else /* if (uniq_total > 0) */
 	{
 #ifdef JP
-		fprintf(fff, "%ld体のユニーク・モンスターを含む、合計%ld体の敵を倒しています。\n", uniq_total, norm_total); 
+		fprintf(fff, "%ld体のユニーク・モンスターを含む、合計%ld体の敵を倒しています。\n", uniq_total + random_unique_kills, norm_total);
 #else
-		fprintf(fff, "You have defeated %ld %s including %ld unique monster%s in total.\n", norm_total, norm_total == 1 ? "enemy" : "enemies", uniq_total, (uniq_total == 1 ? "" : "s"));
+		fprintf(fff, "You have defeated %ld %s including %ld unique monster%s in total.\n", norm_total, norm_total == 1 ? "enemy" : "enemies", uniq_total + random_unique_kills, (uniq_total + random_unique_kills == 1 ? "" : "s"));
 #endif
 
 
@@ -4254,6 +4276,13 @@ static void dump_aux_monsters(FILE *fff)
 		}
 
 	}
+
+    if (random_unique_kills)
+#ifdef JP
+        fprintf(fff, "\n ランダムユニーク・モンスターを%lu体倒しています。\n", (unsigned long)random_unique_kills);
+#else
+        fprintf(fff, "\n Random uniques defeated: %lu.\n", (unsigned long)random_unique_kills);
+#endif
 
 	/* Free the "who" array */
 	C_KILL(who, max_r_idx, s16b);
@@ -4514,10 +4543,10 @@ static void dump_aux_party(FILE *fff, bool roster)
             const player_type *p = active ? p_ptr : &party_members[m].player;
             cptr name = active ? player_name : party_members[m].name;
             fprintf(fff, "%d) %s%s  %s / %s  Lv%ld\n", m + 1,
-                active ? "[操作中] " : "[控え] ", name,
+                (active ? p->is_dead != 0 : party_members[m].dead) ? "[死亡] " : active ? "[操作中] " : "[控え] ", name,
                 p_name + race_info[p->prace].name, c_name + class_info[p->pclass].name, (long)p->lev);
         }
-        fprintf(fff, "\n控えの現在HP・MPは保持せず、交代時に操作中の人物の残存割合を引き継ぐ。\n\n");
+        fprintf(fff, "\nHP・MPは個人別。生存している控えは時間経過で徐々に回復する。\n\n");
         fprintf(fff, "  [操作中の人物・現在の状況]\n\n");
         return;
     }
@@ -4534,6 +4563,14 @@ static void dump_aux_party(FILE *fff, bool roster)
         fprintf(fff, "レベル: %ld / 最大%ld / 最高%ld\n経験値: %ld / 最大%ld / 最高%ld\n",
             (long)p->lev,(long)p->max_plv,(long)p->max_max_plv,
             (long)p->exp,(long)p->max_exp,(long)p->max_max_exp);
+        fprintf(fff, "HP: %ld/%ld  MP: %ld/%ld  %s\n", (long)p->chp, (long)p->mhp, (long)p->csp, (long)p->msp,
+            (active ? p->is_dead != 0 : party_members[m].dead) ? "死亡" : "生存");
+        if (p->temple_tech_effects)
+        {
+            char effects[256];
+            temple_command_describe(p->temple_tech_effects, effects, sizeof(effects));
+            fprintf(fff, "必殺技: %s (MP20・射程2)\n効果: %s\n", p->temple_tech_name, effects);
+        }
         fprintf(fff, "基礎能力値（現在/最大、種族・職業・装備補正前）:\n");
         for(i=0;i<A_MAX;++i) {
             char cur[32], max[32];
@@ -4578,16 +4615,15 @@ static void dump_aux_party(FILE *fff, bool roster)
             fprintf(fff,"%c) %s\n",I2A(i),description);
         }
     }
-    fprintf(fff,"\n  [共有情報]\n\n");
 }
 
 errr make_character_dump(FILE *fff)
 {
 #ifdef JP
-	fprintf(fff, "  [TOband2 %d.%d.%d キャラクタ情報]\n\n",
+	fprintf(fff, "  [TOband-R3 %d.%d.%d キャラクタ情報]\n\n",
 		T_VER_MAJOR, T_VER_MINOR, T_VER_PATCH);
 #else
-	fprintf(fff, "  [TOband2 %d.%d.%d Character Dump]\n\n",
+	fprintf(fff, "  [TOband-R3 %d.%d.%d Character Dump]\n\n",
 		T_VER_MAJOR, T_VER_MINOR, T_VER_PATCH);
 #endif
 
@@ -4595,7 +4631,6 @@ errr make_character_dump(FILE *fff)
 
 	dump_aux_party(fff, TRUE);
 	dump_aux_display_player(fff);
-	dump_aux_party(fff, FALSE);
 	dump_aux_last_message(fff);
 	dump_aux_pet(fff);
 	dump_aux_stock_pet(fff);
@@ -4615,6 +4650,8 @@ errr make_character_dump(FILE *fff)
 	dump_aux_runeweapon_ability(fff);
 	dump_aux_equipment_inventory(fff);
 	dump_aux_home_museum(fff);
+	dump_aux_party(fff, FALSE);
+	fprintf(fff, "\n");
 
 #ifdef JP
 	fprintf(fff, "  [チェックサム: \"%s\"]\n\n", get_check_sum());
@@ -5174,9 +5211,9 @@ bool show_file(bool show_version, cptr name, cptr what, int line, int mode)
 		{
 			prt(format(
 #ifdef JP
-				"[TOband2 %d.%d.%d, %s, %d/%d]",
+				"[TOband-R3 %d.%d.%d, %s, %d/%d]",
 #else
-				"[TOband2 %d.%d.%d, %s, Line %d/%d]",
+				"[TOband-R3 %d.%d.%d, %s, Line %d/%d]",
 #endif
 
 			    T_VER_MAJOR, T_VER_MINOR, T_VER_PATCH,
@@ -5914,6 +5951,7 @@ void do_cmd_save_and_exit(void)
 long total_points(void)
 {
 	int mult = 100;
+    int member;
 	u32b point, point_h, point_l;
 	u32b point_exp, point_dlv, point_winner, point_ogre;
 
@@ -5953,6 +5991,9 @@ long total_points(void)
 		if (p_ptr->total_winner) point++;
 		if (!r_info[MON_FILARHH].max_num) point++;
 	}
+
+    /* Each companion halves the final score, including dead companions. */
+    for (member = 1; member < ((party_rewards & PARTY_RECRUIT_SEALED) ? MAX(3, party_count) : party_count); ++member) point /= 2;
 
 	return point;
 }
@@ -6617,6 +6658,7 @@ void close_game(void)
 
 		if (check_score())
 		{
+			report_score();
 			(void)top_twenty();
 		}
 		else if (highscore_fd >= 0)

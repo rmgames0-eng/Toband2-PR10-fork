@@ -781,7 +781,7 @@ void object_aware(object_type *o_ptr)
 
 		q_ptr->number = 1;
 		object_desc(o_name, q_ptr, OD_NAME_ONLY);
-		
+
 		do_cmd_write_nikki(NIKKI_HANMEI, 0, o_name);
 	}
 }
@@ -4766,6 +4766,14 @@ void apply_magic(object_type *o_ptr, int lev, u32b am_flags)
 		}
 	}
 
+    /* Ishtar's lamp: base-kind bonuses, separate from fuel and ego pval.
+     * Fixed artifacts have already returned above. */
+    if (o_ptr->tval == TV_LITE && o_ptr->sval == SV_LITE_FEANOR)
+    {
+        o_ptr->to_stat[A_STR] += randint1(3);
+        one_resistance(o_ptr);
+    }
+
 	/* Hack -- analyze ego-items */
 	if (o_ptr->name2)
 	{
@@ -6991,15 +6999,17 @@ static void damcalc(int typ, int dam, int limit, int *max)
 		if (p_ptr->ogre_equip) dam *= 2;
 		break;
 
+	case GF_UMBRA:
 	case GF_DARK:
 		if (p_ptr->resist_dark) dam = dam * 4 / 8;
 		if (prace_is_(RACE_FAIRY)) dam = dam * 4 / 3;
-		if (pclass_is_(CLASS_VAMPIRE)) dam = 0;
+		if (pclass_is_(CLASS_VAMPIRE) || pclass_is_(CLASS_DARK_ELEMENT)) dam = 0;
 		if (WRAITH_FORM()) dam = 0;
 		break;
 
 	case GF_NETHER:
-		if ((prace_is_(RACE_GHOST)) || (prace_is_(RACE_SKELETON))) dam = 0;
+		if (pclass_is_(CLASS_DARK_ELEMENT)) dam = 0;
+		else if ((prace_is_(RACE_GHOST)) || (prace_is_(RACE_SKELETON))) dam = 0;
 		else if (p_ptr->resist_neth) dam = dam * 6 / 8;
 		break;
 
@@ -7016,6 +7026,7 @@ static void damcalc(int typ, int dam, int limit, int *max)
 	case GF_INERTIA:
 	case GF_GRAVITY:
 	case GF_MISSILE:
+	case GF_BRAINSTORM:
 	case GF_MANA:
 	case GF_METEOR:
 	case GF_VOLCANIC_BOMB:
@@ -7064,7 +7075,8 @@ static void damcalc(int typ, int dam, int limit, int *max)
 		break;
 
 	case GF_HOLY_FIRE:
-		if ((prace_is_(RACE_GHOST)) || (prace_is_(RACE_SKELETON)) || (get_your_alignment_gne() == ALIGN_GNE_EVIL))
+		if (pclass_is_(CLASS_DARK_ELEMENT)) dam /= 2;
+		else if ((prace_is_(RACE_GHOST)) || (prace_is_(RACE_SKELETON)) || (get_your_alignment_gne() == ALIGN_GNE_EVIL))
 			dam *= 2;
 		if (p_ptr->ogre_equip) dam *= 3;
 		if (p_ptr->immune_holy) dam = 0;
@@ -7921,15 +7933,7 @@ static void make_ammo_from_item(void)
 			q_ptr->feeling = feel;
 		}
 
-		if (dungeon_type == DUNGEON_HEAVEN)
-		{
-			if (q_ptr->name1 == ART_BRUNHILD)
-			{
-				if (object_is_known(q_ptr)) msg_print("天界から帰還するにはブリュンヒルドが必要です。");
-				else msg_print("これは材料にしてはいけない気がする。");
-				return;
-			}
-		}
+
 
 #ifdef JP
 		if (!get_check(format("これは%sという感じがする。続けますか？", game_inscriptions[feel]))) return;
@@ -8497,15 +8501,7 @@ static void drain_essence(void)
 			o_ptr->feeling = feel;
 		}
 
-		if (dungeon_type == DUNGEON_HEAVEN)
-		{
-			if (o_ptr->name1 == ART_BRUNHILD)
-			{
-				if (object_is_known(o_ptr)) msg_print("天界から帰還するにはブリュンヒルドが必要です。");
-				else msg_print("このアイテムからエッセンスを抽出してはいけない気がする。");
-				return;
-			}
-		}
+
 
 #ifdef JP
 		if (!get_check(format("これは%sという感じがする。続けますか？", game_inscriptions[feel]))) return;
@@ -8666,7 +8662,7 @@ static void add_essence(u16b mode)
 							strcpy(dummy, ">  ");
 #endif
 						else strcpy(dummy, "   ");
-						
+
 					}
 					/* letter/number for power selection */
 					else

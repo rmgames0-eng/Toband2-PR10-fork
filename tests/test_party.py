@@ -60,6 +60,10 @@ char *p_name="race", *c_name="class";
 s16b mw_old_weight, mw_diff_to_melee, inven_cnt, equip_cnt;
 s16b energy_use, running, resting, command_rep;
 int py, px;
+s16b cur_hgt=1, cur_wid=1, o_cnt;
+u16b max_o_idx=1024;
+int distance(int y1,int x1,int y2,int x2) { return 0; }
+void compact_objects(int size) {}
 static byte kanji_code=3;
 void euc2sjis(char *s) {}
 byte codeconv(char *s) { return 3; }
@@ -68,6 +72,21 @@ bool monk_armour_aux, monk_notify_aux;
 byte fool_effect_status;
 int mutant_regenerate_mod;
 static int recruits, messages;
+
+/* UI/training behavior is exercised with real services in integration tests. */
+s32b friend_align_lnc, friend_align_gne;
+bool can_save, cheat_save;
+bool save_player(void) { return TRUE; }
+s32b player_exp[PY_MAX_LEVEL];
+cptr elem_names[] = {"Fire", "Aqua", "Earth", "Wind"};
+byte elem_attr(s16b elem) { return TERM_WHITE; }
+void object_flags(object_type *o, u32b flgs[TR_FLAG_SIZE]) { memset(flgs,0,sizeof(u32b)*TR_FLAG_SIZE); }
+errr Term_get_size(int *w, int *h) { *w=80; *h=24; return 0; }
+errr Term_putstr(int x,int y,int n,byte a,cptr text) { return 0; }
+vptr ralloc(huge len) { return malloc(len); }
+vptr rnfree(vptr p,huge len) { free(p); return NULL; }
+void gain_class_exp(s32b amount) { assert(0); }
+void gain_racial_exp(s32b amount) { assert(0); }
 
 int calc_mutant_regenerate_mod(void) { return 100; }
 int stun_level(int value) { return value >= 100 ? 4 : 0; }
@@ -78,6 +97,7 @@ void init_realm_table(void) { cp_ptr->realm_choices=p_ptr->realm_medium; }
 void song_of_silence(int dam) { monsters[1].silent_song=FALSE; }
 void object_aware(object_type *object) {}
 void object_known(object_type *object) { object->ident |= IDENT_KNOWN; }
+void bell(void) {}
 void screen_save(void) {}
 void screen_load(void) {}
 errr Term_clear(void) { return 0; }
@@ -104,6 +124,14 @@ void party_birth_member(void) {
 }
 cptr quark_str(s16b q) { return q==1?"inscription":"artifact"; }
 s16b quark_add(cptr s) { return !strcmp(s,"inscription")?1:2; }
+tarot_type tarot_info[45];
+static char death_key = 'a';
+char inkey(void) { return death_key; }
+s32b Rand_div(u32b n) { return 0; }
+s16b lookup_kind(int tval, int sval) { return 1; }
+void object_prep(object_type *o, int k) { memset(o,0,sizeof(*o)); o->k_idx=k; }
+void object_wipe(object_type *o) { memset(o,0,sizeof(*o)); }
+s16b drop_near(object_type *o,int chance,int y,int x) { return 1; }
 static bool t_older_than(byte a,byte b,byte c,byte d) { return FALSE; }
 static void convert_object(object_type *o) {}
 static FILE *fff;
@@ -112,6 +140,7 @@ static u32b v_stamp,x_stamp,v_check,x_check;
 '''
 
 save, load = source('save.c'), source('load.c')
+old_save = save.replace('        /* Party v4: private weapon timers and brands. */\n        wr_s16b(member->player.magical_weapon);\n        wr_s16b(member->player.evil_weapon);\n        wr_u32b(member->player.special_attack & PARTY_WEAPON_BRANDS);', '')
 for name in ('sf_put', 'wr_byte', 'wr_u16b', 'wr_s16b', 'wr_u32b', 'wr_s32b', 'wr_string', 'wr_item'):
     program += function(save, 'static void ' + name + '(')
 program += function(load, 'static byte sf_get(')
@@ -119,6 +148,8 @@ for name in ('rd_byte', 'rd_u16b', 'rd_s16b', 'rd_u32b', 'rd_s32b', 'rd_string',
     program += function(load, 'static void ' + name + '(')
 program += '#include "party.c"\n'
 program += function(save, 'static void wr_party(')
+program += function(old_save, 'static void wr_party(').replace('wr_party(', 'wr_party_v1(').replace('wr_byte(PARTY_SAVE_VERSION);', 'wr_byte(1);').replace('        wr_byte(member->dead);', '').replace('        wr_byte(member->revived);', '')
+program += function(old_save, 'static void wr_party(').replace('wr_party(', 'wr_party_v2(').replace('wr_byte(PARTY_SAVE_VERSION);', 'wr_byte(2);').replace('        wr_byte(member->revived);', '')
 program += function(load, 'static errr rd_party(')
 program += r'''
 static void reset(void) {
@@ -153,7 +184,7 @@ static void switching(void) {
     party_member dormant;
     reset(); assert(party_switch(1));
     assert(!strcmp(player_name,"Second") && p_ptr->exp==10 && p_ptr->skill_exp[0]==2);
-    assert(p_ptr->chp==26 && p_ptr->csp==6 && energy_use==100);
+    assert(p_ptr->chp==33 && p_ptr->csp==17 && energy_use==100);
     assert(p_ptr->energy_need==-17 && p_ptr->au[1]==123456 && p_ptr->food==6000);
     assert(p_ptr->poisoned==99 && p_ptr->oppose_cold==40 && p_ptr->fast==10);
     assert(p_ptr->wraith_form==9 && p_ptr->invuln==8 && p_ptr->multishadow==7);
@@ -162,11 +193,9 @@ static void switching(void) {
     dormant=party_members[0]; p_ptr->exp+=500; p_ptr->chp=9;
     assert(!memcmp(&dormant,&party_members[0],sizeof(dormant)));
     assert(party_switch(0));
-    assert(p_ptr->chp==11 && p_ptr->exp==765 && p_ptr->weapon_exp[0]==555);
+    assert(p_ptr->chp==33 && p_ptr->exp==765 && p_ptr->weapon_exp[0]==555);
     assert(p_ptr->special_blow==123 && !p_ptr->hero && items[INVEN_RARM].curse_flags==TRC_CURSED);
-    p_ptr->msp=0; p_ptr->csp=0; assert(party_switch(1)); assert(p_ptr->csp==0);
-    assert(party_fraction(1,30000,2,TRUE)==1);
-    assert(party_fraction(2000000000,2000000000,2000000000,FALSE)==2000000000);
+    p_ptr->msp=0; p_ptr->csp=0; assert(party_switch(1)); assert(p_ptr->csp==17);
     reset(); p_ptr->paralyzed=1; assert(!party_switch(1));
     p_ptr->paralyzed=0; p_ptr->stun=100; assert(!party_switch(1));
     p_ptr->stun=0; p_ptr->is_dead=DEATH_DEAD; assert(!party_switch(1));
@@ -245,6 +274,8 @@ static void serialization(void) {
     party_capture();
     for(i=1;i<MAX_PARTY_MEMBERS;++i) {
         party_members[i]=party_members[0];
+        party_members[i].dead = i % 2;
+        party_members[i].revived = (i / 2) % 2;
         party_members[i].player.exp=i*10000;
         party_members[i].player.class_hp[2][77]=i*3;
         party_members[i].player.cexp_info[5].cexp_frac=0xf0000000U+i;
@@ -263,6 +294,8 @@ static void serialization(void) {
         assert(!memcmp(party_members[m].player.cexp_info,expected[m].player.cexp_info,sizeof(expected[m].player.cexp_info)));
         assert(!strcmp(party_members[m].name,expected[m].name));
         assert(!memcmp(party_members[m].player.history,expected[m].player.history,sizeof(expected[m].player.history)));
+        assert(party_members[m].dead==expected[m].dead);
+        assert(party_members[m].revived==expected[m].revived);
         assert(party_members[m].weapon_weight==expected[m].weapon_weight);
         assert(party_members[m].equipment[0].inscription==1);
         assert(party_members[m].equipment[0].art_name==2);
@@ -273,10 +306,55 @@ static void serialization(void) {
     fclose(fff);
     fff=tmpfile(); xor_byte=0; wr_byte(PARTY_SAVE_VERSION); wr_byte(MAX_PARTY_MEMBERS+1); wr_byte(0); wr_byte(0);
     fflush(fff); rewind(fff); xor_byte=0; party_reset(); assert(rd_party()); fclose(fff);
+    reset();
+    party_members[1].player.mhp=79; party_members[1].player.msp=20;
+    party_members[1].player.chp=-9; party_members[1].player.csp=20;
+    fff=tmpfile(); xor_byte=0; wr_party_v1(); fflush(fff); rewind(fff); xor_byte=0;
+    party_reset(); assert(!rd_party()); fclose(fff);
+    assert(party_count==2 && !party_members[0].dead && !party_members[1].dead);
+    assert(party_members[1].player.chp==26 && party_members[1].player.csp==6);
+    assert(p_ptr->chp==33 && p_ptr->csp==17);
+    /* Once upgraded, new saves must never reapply the active ratio. */
+    party_members[1].player.chp=7; party_members[1].player.csp=2;
+    fff=tmpfile(); xor_byte=0; wr_party(); fflush(fff); rewind(fff); xor_byte=0;
+    party_reset(); assert(!rd_party()); fclose(fff);
+    assert(party_members[1].player.chp==7 && party_members[1].player.csp==2);
+    reset(); body.chp=0; body.msp=body.csp=0;
+    fff=tmpfile(); xor_byte=0; wr_party_v1(); fflush(fff); rewind(fff); xor_byte=0;
+    party_reset(); assert(!rd_party()); fclose(fff);
+    assert(party_members[1].player.chp==1 && party_members[1].player.csp==0);
+    reset(); body.chp=body.mhp=2000000000; body.csp=body.msp=2000000000;
+    party_members[1].player.mhp=party_members[1].player.msp=2000000000;
+    fff=tmpfile(); xor_byte=0; wr_party_v1(); fflush(fff); rewind(fff); xor_byte=0;
+    party_reset(); assert(!rd_party()); fclose(fff);
+    assert(party_members[1].player.chp==2000000000 && party_members[1].player.csp==2000000000);
+    reset();
+    party_members[1].player.resurrection_cnt=1;
+    party_members[1].dead=TRUE;
+    fff=tmpfile(); xor_byte=0; wr_party_v2(); fflush(fff); rewind(fff); xor_byte=0;
+    party_reset(); assert(!rd_party()); fclose(fff);
+    assert(!party_members[0].revived && party_members[1].revived && party_members[1].dead);
     party_reset(); assert(!party_count && !party_rewards); /* legacy initialization */
 }
+static void recovery(void) {
+    int i;
+    player_type active;
+    reset(); active=*p_ptr;
+    party_members[1].player.chp=10; party_members[1].player.csp=3;
+    for(i=0;i<100;i++) party_regenerate();
+    assert(party_members[1].player.chp>10 && party_members[1].player.csp>3);
+    assert(!memcmp(&active,p_ptr,sizeof(active)));
+    for(i=0;i<1000;i++) party_regenerate();
+    assert(party_members[1].player.chp==party_members[1].player.mhp);
+    assert(party_members[1].player.csp==party_members[1].player.msp);
+    party_members[1].dead=TRUE; party_members[1].player.chp=0;
+    party_regenerate(); assert(party_members[1].player.chp==0);
+    assert(!party_switch(1)); assert(!party_train_member(1)); assert(!party_has_successor());
+    party_members[1].dead=FALSE; assert(party_has_successor());
+    assert(party_switch(1)); assert(p_ptr->chp==0); /* zero HP is still alive */
+}
 int main(void) {
-    switching(); recruitment(); serialization();
+    switching(); recruitment(); serialization(); recovery();
     puts("Party switching, quest rewards and 16-member save round trip passed");
     return 0;
 }

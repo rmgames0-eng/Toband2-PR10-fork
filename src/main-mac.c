@@ -6092,9 +6092,9 @@ static void init_stuff(void)
 
 		/* Warning */
 #ifdef JP
-		plog("TOband2の'lib'フォルダが存在しないか正しく無い可能性があります.");
+		plog("TOband-R3の'lib'フォルダが存在しないか正しく無い可能性があります.");
 #else
-		plog("The TOband2 'lib' folder is probably missing or misplaced.");
+		plog("The TOband-R3 'lib' folder is probably missing or misplaced.");
 #endif
 
 		/* Warning */

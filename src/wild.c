@@ -1357,7 +1357,7 @@ errr parse_line_wilderness(char *buf, int xmin, int xmax, int *y, int *x)
 
 	for (i = 1; i < max_d_idx; i++)
 	{
-		if (!d_info[i].maxdepth) continue;
+		if (!d_info[i].maxdepth || i == DUNGEON_DEMON) continue;
 		wilderness[d_info[i].dy][d_info[i].dx].entrance = i;
 		if (!wilderness[d_info[i].dy][d_info[i].dx].town)
 			wilderness[d_info[i].dy][d_info[i].dx].level = d_info[i].mindepth;

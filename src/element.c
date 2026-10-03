@@ -11,6 +11,7 @@
  */
 
 #include "angband.h"
+#include "party.h"
 #include "elementtips.h"
 
 /* Mindcraft */
@@ -86,7 +87,7 @@ static s16b calc_mana_cost(int cost)
 	if (p_ptr->dec_mana) tmp_mana = tmp_mana * 3 / 4;
 	if (tmp_mana < 1) tmp_mana = 1;
 
-	return (tmp_mana);
+	return party_magic_cost(tmp_mana);
 }
 
 /*
@@ -724,7 +725,7 @@ void do_cmd_element(void)
 
 
 	/* Take a turn */
-	energy_use = 100;
+	energy_use = party_magic_cost(100);
 
 	/* Sufficient mana */
 	if (mana_cost)

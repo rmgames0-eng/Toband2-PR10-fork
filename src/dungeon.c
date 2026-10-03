@@ -63,34 +63,6 @@ static byte value_check_aux1(object_type *o_ptr)
 }
 
 
-/*
- * Return a "feeling" (or NULL) about an item.  Method 2 (Light).
- */
-static byte value_check_aux2(object_type *o_ptr)
-{
-	/* Cursed items (all of them) */
-	if (object_is_cursed(o_ptr)) return FEEL_CURSED;
-
-	/* Broken items (all of them) */
-	if (object_is_broken(o_ptr)) return FEEL_BROKEN;
-
-	/* Artifacts -- except cursed/broken ones */
-	if (object_is_artifact(o_ptr)) return FEEL_UNCURSED;
-
-	/* Ego-Items -- except cursed/broken ones */
-	if (object_is_ego(o_ptr)) return FEEL_UNCURSED;
-
-	/* Good armor bonus */
-	if (o_ptr->to_a > 0) return FEEL_UNCURSED;
-
-	/* Good weapon bonuses */
-	if (o_ptr->to_h + o_ptr->to_d > 0) return FEEL_UNCURSED;
-
-	/* No feeling */
-	return FEEL_NONE;
-}
-
-
 #define SENSE_TYPE_NONE   0
 #define SENSE_TYPE_LIGHT  1
 #define SENSE_TYPE_HEAVY  2
@@ -139,8 +111,6 @@ static void sense_object_aux(int item, int sense_type)
 			feel = FEEL_NONE;
 			break;
 		case SENSE_TYPE_LIGHT:
-			feel = value_check_aux2(o_ptr);
-			break;
 		case SENSE_TYPE_HEAVY:
 			feel = value_check_aux1(o_ptr);
 			break;
@@ -165,10 +135,7 @@ static void sense_object_aux(int item, int sense_type)
 					}
 					case FEEL_CURSED:
 					{
-						if (sense_type == SENSE_TYPE_HEAVY)
-							feel = randint0(3) ? FEEL_GOOD : FEEL_AVERAGE;
-						else
-							feel = FEEL_UNCURSED;
+						feel = randint0(3) ? FEEL_GOOD : FEEL_AVERAGE;
 						break;
 					}
 					case FEEL_AVERAGE:
@@ -1475,6 +1442,8 @@ static void process_world_aux_timeout(void)
 	{
 		(void)set_tim_esp(p_ptr->tim_esp - 1, TRUE);
 	}
+
+	party_timeout_weapons();
 
 	/* Timed temporary elemental brands. -LM- */
 	if (p_ptr->magical_weapon)
@@ -3362,6 +3331,10 @@ static void process_world(void)
 		}
 	}
 
+	/* Reserves recover at the normal base rate, once per world tick. */
+	party_process_reserves();
+	party_regenerate();
+
 	/* Process timed damage and regeneration */
 	process_world_aux_hp_and_sp();
 
@@ -3971,6 +3944,18 @@ static void process_command(void)
 			/* -KMW- */
 			if (!p_ptr->wild_mode)
 			{
+                if (!pclass_is_(CLASS_GUNNER) && !pclass_is_(CLASS_ELEMENTALER))
+                {
+                    do_cmd_cast();
+                    break;
+                }
+                if (!astral_mode && !p_ptr->inside_arena && party_count > 1)
+                {
+                    char choice;
+                    if (!get_com("a) 職業の特殊能力  b) 魔法書 : ", &choice, FALSE)) break;
+                    if (choice == 'b') { do_cmd_cast(); break; }
+                    if (choice != 'a') break;
+                }
 				if (!class_info[p_ptr->pclass].realm_choices && !pclass_is_(CLASS_GUNNER) && !pclass_is_(CLASS_ELEMENTALER))
 				{
 #ifdef JP
@@ -4231,6 +4216,13 @@ static void process_command(void)
 			else
 				do_cmd_use_staff();
 			}
+			break;
+		}
+
+		/* Switch to the next living companion. */
+		case 'Y':
+		{
+			do_cmd_party_next();
 			break;
 		}
 
@@ -4622,6 +4614,7 @@ static void process_player(void)
 			/* Stop resting */
 			if ((p_ptr->chp == p_ptr->mhp) &&
 			    (p_ptr->csp >= p_ptr->msp) &&
+                party_reserves_recovered() &&
 			    !p_ptr->blind && !p_ptr->confused &&
 			    !p_ptr->poisoned && !p_ptr->afraid &&
 			    !p_ptr->stun && !p_ptr->cut &&
@@ -5121,7 +5114,7 @@ static void dungeon(void)
 		}
 		if (record_maxdeapth) do_cmd_write_nikki(NIKKI_MAXDEAPTH, dun_level, NULL);
 
-		if (pclass_is_(CLASS_TEMPLEKNIGHT) && (dungeon_type == DUNGEON_AIR_GARDEN) && (max_dlv[dungeon_type] == d_info[dungeon_type].maxdepth))
+		if ((pclass_is_(CLASS_TEMPLEKNIGHT) || pclass_is_(CLASS_TEMPLECOMMAND)) && (dungeon_type == DUNGEON_AIR_GARDEN) && (max_dlv[dungeon_type] == d_info[dungeon_type].maxdepth))
 		{
 			misc_event_flags |= EVENT_CLOSE_AIR_GARDEN;
 			max_dlv[DUNGEON_RUINS] = d_info[DUNGEON_RUINS].mindepth;
@@ -5202,7 +5195,8 @@ static void dungeon(void)
 	   || (!dun_level && p_ptr->town_num && (p_ptr->town_num != TOWN_LOST_ISLAND) && !p_ptr->inside_arena)) do_cmd_feeling();
 
 	/* Hack -- notice death or departure */
-	if (!p_ptr->playing || p_ptr->is_dead) return;
+	if (p_ptr->is_dead) (void)party_handle_death();
+		if (!p_ptr->playing || p_ptr->is_dead) return;
 
 	/* Print quest message if appropriate */
 	if (!p_ptr->inside_quest && (dungeon_type == DUNGEON_PALACE))
@@ -5283,6 +5277,7 @@ static void dungeon(void)
 		if (fresh_after) Term_fresh();
 
 		/* Hack -- Notice death or departure */
+		if (p_ptr->is_dead) (void)party_handle_death();
 		if (!p_ptr->playing || p_ptr->is_dead) break;
 
 		/* Process all of the monsters */
@@ -5307,6 +5302,7 @@ static void dungeon(void)
 		if (fresh_after) Term_fresh();
 
 		/* Hack -- Notice death or departure */
+		if (p_ptr->is_dead) (void)party_handle_death();
 		if (!p_ptr->playing || p_ptr->is_dead) break;
 
 
@@ -5332,6 +5328,7 @@ static void dungeon(void)
 		if (fresh_after) Term_fresh();
 
 		/* Hack -- Notice death or departure */
+		if (p_ptr->is_dead) (void)party_handle_death();
 		if (!p_ptr->playing || p_ptr->is_dead) break;
 
 		/* Handle "leaving" */

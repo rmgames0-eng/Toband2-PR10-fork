@@ -84,6 +84,16 @@ void reset_visuals(void)
 /*
  * Obtain the "flags" for an item
  */
+/* Ignore retired class-entry bits still present in old saved artifacts. */
+static void object_class_flags(object_type *o_ptr, u32b flgs[TR_FLAG_SIZE])
+{
+    remove_flag(flgs, TR_CLASS_GENERAL);
+    remove_flag(flgs, TR_CLASS_WHITEKNIGHT);
+    remove_flag(flgs, TR_CLASS_TEMPLEKNIGHT);
+    remove_flag(flgs, TR_CLASS_LORD);
+    remove_flag(flgs, TR_CLASS_ANGELKNIGHT);
+}
+
 void object_flags(object_type *o_ptr, u32b flgs[TR_FLAG_SIZE])
 {
 	object_kind *k_ptr = &k_info[o_ptr->k_idx];
@@ -130,6 +140,8 @@ void object_flags(object_type *o_ptr, u32b flgs[TR_FLAG_SIZE])
 			add_flag(flgs, add);
 		}
 	}
+
+	object_class_flags(o_ptr, flgs);
 
 	/* Remove flags from empty lites */
 	if ((o_ptr->tval == TV_LITE) && (o_ptr->sval <= SV_LITE_LANTERN) && !o_ptr->xtra4)
@@ -227,6 +239,8 @@ void object_flags_known(object_type *o_ptr, u32b flgs[TR_FLAG_SIZE])
 			add_flag(flgs, add);
 		}
 	}
+
+	object_class_flags(o_ptr, flgs);
 
 	/* Remove flags from empty lites */
 	if ((o_ptr->tval == TV_LITE) && (o_ptr->sval <= SV_LITE_LANTERN) && !o_ptr->xtra4)
@@ -1220,6 +1234,20 @@ return "太陽光線 : 10 ターン毎";
 	/* Some artifacts can be activated */
 	switch (o_ptr->name1)
 	{
+		case ART_ARCHANGEL_WINGS:
+#ifdef JP
+			return "体力回復 (500) : 250 ターン毎";
+#else
+			return "heal (500) every 250 turns";
+#endif
+
+        case ART_DREAM_CROWN:
+#ifdef JP
+            return "皇帝のタロット（攻撃回数増加、41〜80ターン） : 250 ターン毎";
+#else
+            return "Emperor tarot (extra attacks for 41-80 turns) every 250 turns";
+#endif
+
 		case ART_FREUDE_HELM:
 		{
 #ifdef JP
@@ -2318,6 +2346,10 @@ bool screen_object(object_type *o_ptr, FILE *fff, bool real)
 
 	cptr info[128];
 	char o_name[MAX_NLEN];
+	/* Keep deferred description strings alive until the screen is rendered. */
+	char weapon_type[80];
+	char intro_msg[80];
+	char temp[70 * 20];
 	int wid, hgt;
 
 	char affect_stat_buf[A_MAX][128];
@@ -2341,7 +2373,6 @@ bool screen_object(object_type *o_ptr, FILE *fff, bool real)
 
 		if (show_history)
 		{
-			char intro_msg[80];
 #ifdef JP
 			sprintf(intro_msg, "先祖%sの生前の生い立ちが刻まれている...", runeweapon->ancestor);
 #else
@@ -2353,7 +2384,6 @@ bool screen_object(object_type *o_ptr, FILE *fff, bool real)
 	}
 	else
 	{
-		char temp[70 * 20];
 		cptr text_ptr;
 
 		if (o_ptr->name1) text_ptr = a_text + a_info[o_ptr->name1].text;
@@ -3419,6 +3449,22 @@ info[i++] = "それは敵からヒットポイントを吸収する。";
 #endif
 
 	}
+	if (have_flag(flgs, TR_CLASS_HIGHWITCH))
+	{
+#ifdef JP
+		info[i++] = "それはうぃっちへのクラスチェンジを可能とする。";
+#else
+		info[i++] = "It allows you to change class to High-Witch.";
+#endif
+	}
+	if (have_flag(flgs, TR_CLASS_RELICSKNIGHT))
+	{
+#ifdef JP
+		info[i++] = "それはレリクスナイトへのクラスチェンジを可能とする。";
+#else
+		info[i++] = "It allows you to change class to Relics-Knight.";
+#endif
+	}
 	if (have_flag(flgs, TR_WARNING))
 	{
 #ifdef JP
@@ -3929,7 +3975,6 @@ info[i++] = "それは敵からヒットポイントを吸収する。";
 
 	if ((o_ptr->tval >= TV_BOW) && (o_ptr->tval <= TV_SWORD))
 	{
-		char weapon_type[80];
 #ifdef JP
 		sprintf(weapon_type, "武器タイプ: %s", weapon_skill_name[get_weapon_type(k_ptr)]);
 #else

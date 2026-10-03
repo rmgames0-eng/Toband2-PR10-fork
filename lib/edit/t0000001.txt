@@ -127,11 +127,11 @@ F:b:129:3:0:0:0:0:0:25
 ?:[EQU $QUEST25 2]
 F:b:129:3:0:0:0:0:0:25
 
-# Quest 25 rewarding, reward is Potion of Strength,
+# Quest 25 rewarding, reward is Amulet of Telepathy,
 # continue with quest 18
 ?:[EQU $QUEST25 3]
 F:b:129:3:0:0:0:0:0:18
-F:!:1:3:0:517
+F:!:1:3:0:230
 
 # Quest 25 finished, continue with quest 18
 ?:[EQU $QUEST25 4]

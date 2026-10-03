@@ -631,6 +631,48 @@ static void heaven_gate_gen(void)
 }
 
 
+/* Preserve old visited Ruins floors while adding their new gate in place. */
+void ensure_demon_gate(void)
+{
+    int y, x, best_y = -1, best_x = -1, best = 100000;
+    if (!IN_DEMON_GATE()) return;
+    for (y = 1; y < cur_hgt - 1; y++) for (x = 1; x < cur_wid - 1; x++)
+    {
+        cave_type *c_ptr = &cave[y][x];
+        int dist;
+        if (IS_DEMON_GATE(c_ptr)) return;
+        if (c_ptr->feat != FEAT_FLOOR) continue;
+        if (c_ptr->special == DUNGEON_DEMON)
+        {
+            c_ptr->mimic = FEAT_CHAOS_GATE;
+            return;
+        }
+        dist = ABS(y - cur_hgt / 2) + ABS(x - cur_wid / 2);
+        if (dist < best) { best = dist; best_y = y; best_x = x; }
+    }
+    if (best_y >= 0)
+    {
+        cave[best_y][best_x].mimic = FEAT_CHAOS_GATE;
+        cave[best_y][best_x].special = DUNGEON_DEMON;
+    }
+}
+
+static void demon_gate_gen(void)
+{
+    int y, x;
+    cur_hgt = 44;
+    cur_wid = 88;
+    for (y = 0; y < cur_hgt; y++) for (x = 0; x < cur_wid; x++)
+        cave[y][x].feat = FEAT_PERM_SOLID;
+    init_flags = INIT_CREATE_DUNGEON;
+    process_dungeon_file("d_gate.txt", 0, 0, cur_hgt, cur_wid);
+    cur_hgt = 44; cur_wid = 88;
+    ensure_demon_gate();
+    /* Enter on the stairs; the vault interior cannot be teleported into. */
+    for (y = 1; y < cur_hgt - 1; y++) for (x = 1; x < cur_wid - 1; x++)
+        if (cave[y][x].feat == FEAT_LESS) { py = y; px = x; return; }
+}
+
 /* Place quest monsters */
 bool place_quest_monsters(void)
 {
@@ -818,6 +860,40 @@ static void gen_caverns_and_lakes(void)
  *
  * Note that "dun_body" adds about 4000 bytes of memory to the stack.
  */
+/* One altar at most; only newly generated demon-realm floors roll for it. */
+static void alloc_purgatory_altar(void)
+{
+    int attempt, y, x, dy, dx;
+    if (dungeon_type != DUNGEON_DEMON || !one_in_(25)) return;
+    for (y = 1; y < cur_hgt - 1; y++)
+        for (x = 1; x < cur_wid - 1; x++)
+            if (cave[y][x].feat == FEAT_PURGATORY_ALTAR) return;
+    for (attempt = 0; attempt < 3000; attempt++)
+    {
+        bool okay = TRUE;
+        y = rand_range(2, cur_hgt - 3);
+        x = rand_range(2, cur_wid - 3);
+        for (dy = -1; dy <= 1; dy++) for (dx = -1; dx <= 1; dx++)
+        {
+            cave_type *c = &cave[y + dy][x + dx];
+            if (c->m_idx || c->o_idx || c->special || (c->info & CAVE_ICKY) ||
+                (y + dy == py && x + dx == px) ||
+                (c->feat != FEAT_FLOOR && c->feat != FEAT_SHAL_LAVA && c->feat != FEAT_DEEP_LAVA))
+                okay = FALSE;
+        }
+        if (!okay) continue;
+        /* Dry ground also gives the sacrificed equipment somewhere to land. */
+        for (dy = -1; dy <= 1; dy++) for (dx = -1; dx <= 1; dx++)
+        {
+            cave_type *c = &cave[y + dy][x + dx];
+            c->feat = FEAT_FLOOR; c->mimic = 0;
+            c->info |= CAVE_GLOW | CAVE_ROOM;
+        }
+        cave[y][x].feat = FEAT_PURGATORY_ALTAR;
+        return;
+    }
+}
+
 static bool cave_gen(void)
 {
 	int i, k, y, x;
@@ -837,6 +913,12 @@ static bool cave_gen(void)
 
 	/* Prepare allocation table */
 	get_mon_num_prep(get_monster_hook(), NULL);
+
+    if (IN_DEMON_GATE())
+    {
+        demon_gate_gen();
+        return TRUE;
+    }
 
 	if (IN_HEAVEN_GATE())
 	{
@@ -1284,6 +1366,8 @@ static bool cave_gen(void)
 		}
 	}
 
+    alloc_purgatory_altar();
+
 	return TRUE;
 }
 
@@ -1468,7 +1552,7 @@ static bool level_gen(cptr *why)
 	int level_height, level_width;
 
 	if ((always_small_levels ||
-	    (one_in_(SMALL_LEVEL) && small_levels) ||
+	    (one_in_(dungeon_type == DUNGEON_PALACE ? 5 : SMALL_LEVEL) && small_levels) ||
 	    (d_info[dungeon_type].flags1 & DF1_BEGINNER) ||
 	    (d_info[dungeon_type].flags1 & DF1_SMALLEST) ||
 	    (d_info[dungeon_type].flags1 & DF1_SMALLER)) &&

@@ -76,6 +76,11 @@ void do_cmd_go_up(void)
 
 	if (!dun_level)
 	{
+        if (c_ptr->special == DUNGEON_DEMON)
+        {
+            msg_print("魔界への入口はここにはない。");
+            return;
+        }
 		if ((astral_mode) && (c_ptr->special != DUNGEON_PALACE))
 		{
 #ifdef JP
@@ -363,6 +368,11 @@ void do_cmd_go_down(void)
 
 	if (!dun_level)
 	{
+        if (c_ptr->special == DUNGEON_DEMON)
+        {
+            msg_print("魔界への入口はここにはない。");
+            return;
+        }
 		if ((astral_mode) && (c_ptr->special != DUNGEON_PALACE))
 		{
 #ifdef JP
@@ -3070,7 +3080,9 @@ void do_cmd_walk(int pickup)
 			tmp = 1;
 		if (((wilderness[py][px].level + 5) > (p_ptr->lev / 2)) && randint0(tmp) < (21-p_ptr->skill_stl))
 		{
-			if ((wilderness[py][px].terrain != TERRAIN_DEEP_WATER) || !wilderness[py][px].road)
+			/* Daytime roads retain only one fifth of normal encounters. */
+            if (((wilderness[py][px].terrain != TERRAIN_DEEP_WATER) || !wilderness[py][px].road) &&
+                (!wilderness[py][px].road || !is_daytime() || one_in_(5)))
 			{
 				sound(SOUND_ENCOUNT);
 
@@ -4368,7 +4380,7 @@ bool do_cmd_fire_aux(int item, object_type *j_ptr, int shot_flgs, int x_to_h, in
 						u16b p = bolt_pict(y, x, y, x, GF_LITE);
 						byte a = PICT_A(p);
 						char c = PICT_C(p);
-	
+
 						/* Draw, Hilite, Fresh, Pause, Erase */
 						print_rel(c, a, y, x);
 						move_cursor_relative(y, x);
@@ -4377,7 +4389,7 @@ bool do_cmd_fire_aux(int item, object_type *j_ptr, int shot_flgs, int x_to_h, in
 						lite_spot(y, x);
 						Term_fresh();
 					}
-	
+
 					/* The player cannot see the missile */
 					else
 					{
@@ -4385,10 +4397,10 @@ bool do_cmd_fire_aux(int item, object_type *j_ptr, int shot_flgs, int x_to_h, in
 						Term_xtra(TERM_XTRA_DELAY, msec);
 					}
 				}
-	
+
 				/* Reduce duration */
 				penetrate -= 5;
-	
+
 				/* Did we hit it (penalize range) */
 				if (test_hit_fire(chance - cur_dis, ac, m_ptr->ml))
 				{
@@ -4775,14 +4787,7 @@ bool do_cmd_throw_aux(int mult, u16b mode, int chosen_item)
 		&& ((o_ptr->sval == SV_FRANCISCA) || (o_ptr->sval == SV_RUNEAXE)))
 			return_when_thrown = TRUE;
 
-	if (dungeon_type == DUNGEON_HEAVEN)
-	{
-		if (object_is_known(o_ptr) && (o_ptr->name1 == ART_BRUNHILD))
-		{
-			msg_print("天界から帰還するにはブリュンヒルドが必要です。");
-			return FALSE;
-		}
-	}
+
 
 	/* Item is cursed */
 	if (object_is_cursed(o_ptr) && (item >= INVEN_RARM))

@@ -11,6 +11,39 @@
  */
 
 #include "angband.h"
+#include "party.h"
+
+/* Relics Knight impact: Hengband martial-arts resistance, excluding chaos. */
+static void relics_knight_stun(int m_idx, int damage)
+{
+    monster_type *m_ptr = &m_list[m_idx];
+    monster_race *r_ptr = &r_info[m_ptr->r_idx];
+    int resistance = 0, duration;
+    char name[80];
+    if (!pclass_is_(CLASS_RELICSKNIGHT) || (r_ptr->flags7 & RF7_CHAOTIC) ||
+        damage <= 0 || damage >= m_ptr->hp) return;
+    if (r_ptr->flags1 & RF1_UNIQUE) resistance += 88;
+    if (r_ptr->flags3 & RF3_NO_STUN) resistance += 66;
+    if (r_ptr->flags3 & RF3_NO_CONF) resistance += 33;
+    if (r_ptr->flags3 & RF3_NO_SLEEP) resistance += 33;
+    if (r_ptr->flags3 & (RF3_UNDEAD | RF3_NONLIVING)) resistance += 66;
+    if (p_ptr->lev <= randint1(r_ptr->level + resistance + 10)) return;
+    duration = 10 + randint1(15) + p_ptr->lev / 5;
+    monster_desc(name, m_ptr, 0);
+    if (set_monster_stunned(m_idx, MON_STUNNED(m_ptr) + duration))
+#ifdef JP
+        msg_format("%^sはフラフラになった。", name);
+#else
+        msg_format("%^s is stunned.", name);
+#endif
+    else
+#ifdef JP
+        msg_format("%^sはさらにフラフラになった。", name);
+#else
+        msg_format("%^s is more stunned.", name);
+#endif
+}
+
 #define MAX_VAMPIRIC_DRAIN 50
 
 
@@ -428,6 +461,9 @@ s32b tot_dam_div(object_type *o_ptr, monster_type *m_ptr, bool in_hand)
  * Note that most brands and slays are x3, except Slay Animal (x2),
  * Slay Evil (x2), and Kill dragon (x5).
  */
+static u32b temple_attack_effects;
+static bool temple_attack_hit;
+
 s32b tot_dam_aux(object_type *o_ptr, int tdam, monster_type *m_ptr, bool in_hand)
 {
 	int mult = 10;
@@ -443,6 +479,7 @@ s32b tot_dam_aux(object_type *o_ptr, int tdam, monster_type *m_ptr, bool in_hand
 
 	/* Extract the flags */
 	object_flags(o_ptr, flgs);
+    if (in_hand) temple_command_flags(temple_attack_effects, flgs);
 
 	flags2 = r_ptr->flags2;
 	flags3 = r_ptr->flags3;
@@ -2079,7 +2116,7 @@ static void touch_zap_player(monster_type *m_ptr)
  *
  * If no "weapon" is available, then "punch" the monster one time.
  */
-static void py_attack_aux(int y, int x, bool *fear, bool *mdeath, s16b hand, int mode)
+static void py_attack_aux(int y, int x, bool *fear, bool *mdeath, s16b hand, int mode, bool single)
 {
 	int		num = 0, k, bonus, chance;
 
@@ -2154,6 +2191,8 @@ static void py_attack_aux(int y, int x, bool *fear, bool *mdeath, s16b hand, int
 		}
 	}
 
+	if (single) num_blow = 1;
+
 	/* Attack once for each legal blow */
 	while ((num++ < num_blow) && !p_ptr->is_dead)
 	{
@@ -2187,7 +2226,7 @@ static void py_attack_aux(int y, int x, bool *fear, bool *mdeath, s16b hand, int
 				    m_name);
 			else
 			{
-				if (!(empty_hands() & EMPTY_HAND_RARM))
+				if (!single && !(empty_hands() & EMPTY_HAND_RARM))
 #ifdef JP
 					msg_format("%sを攻撃した。", m_name);
 #else
@@ -2200,6 +2239,8 @@ static void py_attack_aux(int y, int x, bool *fear, bool *mdeath, s16b hand, int
 			k = 1;
 
 			object_flags(o_ptr, flgs);
+            if (mode == PY_ATTACK_TEMPLE)
+            { temple_attack_hit = TRUE; temple_command_flags(temple_attack_effects, flgs); }
 
 			if ((p_ptr->tim_sh_aura) && (o_ptr->tval == TV_SWORD))
 			{
@@ -2571,8 +2612,7 @@ static void py_attack_aux(int y, int x, bool *fear, bool *mdeath, s16b hand, int
 			if (k < 0) k = 0;
 
 			if ((mode == PY_ATTACK_MINEUCHI) ||
-				(o_ptr->k_idx && (o_ptr->name2 == EGO_EARTHQUAKES)) ||
-				(pclass_is_(CLASS_RELICSKNIGHT) && (get_weapon_type(&k_info[o_ptr->k_idx]) == WT_HAMMER)))
+				(o_ptr->k_idx && (o_ptr->name2 == EGO_EARTHQUAKES)))
 			{
 				int tmp = (10 + randint1(15) + p_ptr->lev / 5);
 
@@ -2672,6 +2712,8 @@ static void py_attack_aux(int y, int x, bool *fear, bool *mdeath, s16b hand, int
 
 			if (drain_result > m_ptr->hp)
 				drain_result = m_ptr->hp;
+
+			relics_knight_stun(c_ptr->m_idx, k);
 
 			/* Damage, check for fear and death */
 			if (mon_take_hit(c_ptr->m_idx, k, fear, NULL, FALSE))
@@ -3012,6 +3054,15 @@ static void py_attack_aux(int y, int x, bool *fear, bool *mdeath, s16b hand, int
 	}
 }
 
+static bool party_attack_once(int y, int x)
+{
+    bool fear = FALSE, dead = FALSE;
+    int hand = p_ptr->migite ? 0 : 1;
+    if (!p_ptr->migite && !p_ptr->hidarite) return FALSE;
+    py_attack_aux(y, x, &fear, &dead, hand, 0, TRUE);
+    return dead;
+}
+
 bool py_attack(int y, int x, int mode)
 {
 	bool            fear = FALSE;
@@ -3071,6 +3122,7 @@ bool py_attack(int y, int x, int mode)
 #else
 				msg_format("You stop to avoid hitting %s.", m_name);
 #endif
+                if (mode == PY_ATTACK_TEMPLE) energy_use = 0;
 				return FALSE;
 			}
 		}
@@ -3111,8 +3163,8 @@ bool py_attack(int y, int x, int mode)
 	if ((mode == PY_ATTACK_WHIP) && (get_weapon_type(&k_info[inventory[INVEN_LARM].k_idx]) != WT_WHIP)) hidarite_ok = FALSE;
 
 	riding_t_m_idx = c_ptr->m_idx;
-	if (p_ptr->migite && migite_ok) py_attack_aux(y, x, &fear, &mdeath, 0, mode);
-	if (p_ptr->hidarite && !mdeath && hidarite_ok) py_attack_aux(y, x, &fear, &mdeath, 1, mode);
+	if (p_ptr->migite && migite_ok) py_attack_aux(y, x, &fear, &mdeath, 0, mode, FALSE);
+	if (p_ptr->hidarite && !mdeath && hidarite_ok) py_attack_aux(y, x, &fear, &mdeath, 1, mode, FALSE);
 
 	/* Hack -- delay fear messages */
 	if (fear && m_ptr->ml && !mdeath)
@@ -3129,8 +3181,44 @@ bool py_attack(int y, int x, int mode)
 
 	}
 
+    if (mode == PY_ATTACK_TEMPLE) temple_attack_effects = 0;
+	if ((mode != PY_ATTACK_TEMPLE || distance(py, px, y, x) <= 1) &&
+        !mdeath && !p_ptr->is_dead && c_ptr->m_idx &&
+	    &m_list[c_ptr->m_idx] == m_ptr)
+		mdeath = party_followup_attacks(y, x, party_attack_once);
+
 	return mdeath;
 }
+
+bool temple_command_attack(int y, int x)
+{
+    int m_idx, ny, nx, dy, dx;
+    bool dead, push;
+    monster_type *m;
+    u32b effects = p_ptr->temple_tech_effects;
+    if (!in_bounds(y, x) || !(m_idx = cave[y][x].m_idx) || m_idx == p_ptr->riding ||
+        distance(py, px, y, x) > 2 || !projectable(py, px, y, x) || p_ptr->afraid) return FALSE;
+    temple_attack_effects = effects;
+    temple_attack_hit = FALSE;
+    dead = py_attack(y, x, PY_ATTACK_TEMPLE);
+    push = temple_attack_hit && (effects & TEMPLE_KNOCKBACK);
+    temple_attack_effects = 0;
+    if (!energy_use) return FALSE;
+    if (!push || dead || p_ptr->is_dead || cave[y][x].m_idx != m_idx) return TRUE;
+    m = &m_list[m_idx];
+    dy = y - py; dx = x - px;
+    ny = y + (dy > 0 ? 1 : dy < 0 ? -1 : 0);
+    nx = x + (dx > 0 ? 1 : dx < 0 ? -1 : 0);
+    if (!in_bounds(ny, nx) || cave[ny][nx].m_idx || (ny == py && nx == px) ||
+        !monster_can_enter(ny, nx, &r_info[m->r_idx])) return TRUE;
+    cave[y][x].m_idx = 0; cave[ny][nx].m_idx = m_idx;
+    m->fy = ny; m->fx = nx;
+    update_mon(m_idx, TRUE);
+    lite_spot(y, x); lite_spot(ny, nx);
+    p_ptr->window |= PW_MONLIST;
+    return TRUE;
+}
+
 
 
 
@@ -3677,6 +3765,37 @@ void move_player(int dir, int do_pickup)
 		disturb(0, 0);
 	}
 
+    /* Relics Knights can break interior permanent walls, never map borders. */
+    else if (pclass_is_(CLASS_RELICSKNIGHT) &&
+        c_ptr->feat >= FEAT_PERM_EXTRA && c_ptr->feat <= FEAT_PERM_SOLID &&
+        y > 0 && y < cur_hgt - 1 && x > 0 && x < cur_wid - 1)
+    {
+        energy_use = 100;
+        disturb(0, 0);
+        if (one_in_(20))
+        {
+            c_ptr->info &= ~CAVE_MARK;
+            cave_force_set_floor(y, x);
+            p_ptr->update |= (PU_VIEW | PU_LITE | PU_FLOW | PU_MONSTERS | PU_MON_LITE);
+#ifdef JP
+            msg_print("永久壁を打ち砕いた！");
+#else
+            msg_print("You smash through the permanent wall!");
+#endif
+        }
+        else
+        {
+            oktomove = FALSE;
+            c_ptr->info |= CAVE_MARK;
+            lite_spot(y, x);
+#ifdef JP
+            msg_print("永久壁はびくともしない。");
+#else
+            msg_print("The permanent wall holds firm.");
+#endif
+        }
+    }
+
 	/* Player can not walk through "walls" unless in wraith form...*/
 	else if ((!cave_floor_bold(y, x)) &&
 		(!p_can_pass_walls))
@@ -4071,10 +4190,10 @@ void move_player(int dir, int do_pickup)
 			hit_trap();
 		}
 
-		if (IN_HEAVEN_GATE())
+		if (IN_HEAVEN_GATE() || IN_DEMON_GATE())
 		{
-			if ((c_ptr->mimic == FEAT_FLOOR) &&
-				((c_ptr->feat == FEAT_GRASS) || (c_ptr->feat == FEAT_DEEP_GRASS)))
+			if (IS_DEMON_GATE(c_ptr) || ((c_ptr->mimic == FEAT_FLOOR) &&
+				((c_ptr->feat == FEAT_GRASS) || (c_ptr->feat == FEAT_DEEP_GRASS))))
 			{
 				int i;
 

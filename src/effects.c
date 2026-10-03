@@ -11,6 +11,7 @@
  */
 
 #include "angband.h"
+#include "party.h"
 
 void set_action(int typ)
 {
@@ -2793,7 +2794,7 @@ bool set_magical_weapon(u32b attack_type, int v, int item, bool item_disappear)
 		}
 		if (!mw_diff_to_melee)
 		{
-			mw_diff_to_melee = p_ptr->cexp_info[p_ptr->pclass].clev / 2;
+			mw_diff_to_melee = party_spell_caster()->cexp_info[party_spell_caster()->pclass].clev / 2;
 			o_ptr->to_h += mw_diff_to_melee;
 			o_ptr->to_d += mw_diff_to_melee;
 		}
@@ -2884,7 +2885,7 @@ bool set_evil_weapon(int v, bool do_dec, int item, bool item_disappear)
 
 			if (!mw_diff_to_melee)
 			{
-				mw_diff_to_melee = p_ptr->cexp_info[p_ptr->pclass].clev / 2;
+				mw_diff_to_melee = party_spell_caster()->cexp_info[party_spell_caster()->pclass].clev / 2;
 				o_ptr->to_h += mw_diff_to_melee;
 				o_ptr->to_d += mw_diff_to_melee;
 			}
@@ -4880,6 +4881,14 @@ static bool resurrect_player(int item, int percent, int reincarnate)
  * the game when he dies, since the "You die." message is shown before
  * setting the player to "dead".
  */
+/* Death still uses the normal resurrection and deferred party-death path. */
+bool diablo_death(cptr hit_from)
+{
+    if (p_ptr->is_dead || p_ptr->chp > p_ptr->mhp / 2) return FALSE;
+    take_hit(DAMAGE_LOSELIFE | DAMAGE_INSTANT, MAX(p_ptr->chp, 0) + 1, hit_from);
+    return TRUE;
+}
+
 int take_hit(u32b damage_type, int damage, cptr hit_from)
 {
 	int old_chp = p_ptr->chp;
@@ -4893,7 +4902,7 @@ int take_hit(u32b damage_type, int damage, cptr hit_from)
 	/* Paranoia */
 	if (p_ptr->is_dead & DEATH_DEAD) return 0;
 
-	if (easy_band) damage = (damage+1)/2;
+	if (easy_band && !(damage_type & DAMAGE_INSTANT)) damage = (damage+1)/2;
 
 	if (p_ptr->mermaid_in_water)
 	{
@@ -5049,6 +5058,16 @@ int take_hit(u32b damage_type, int damage, cptr hit_from)
 			if (resurrect_player(-1, 100, CLASS_ANGELKNIGHT)) return damage;
 			if (resurrect_player(-1, 100, CLASS_VAMPIRE)) return damage;
 		}
+
+        /* Let this action finish with the dead actor before choosing a successor. */
+        if (party_has_successor() && !p_ptr->inside_arena)
+        {
+            p_ptr->is_dead |= DEATH_DEAD;
+            p_ptr->leaving = TRUE;
+            strnfmt(p_ptr->died_from, sizeof(p_ptr->died_from), "%s", hit_from);
+            msg_format("%sは死亡した。", player_name);
+            return damage;
+        }
 
 		/* 死んだ時に強制終了して死を回避できなくしてみた by Habu */
 		if (!cheat_save)
@@ -5246,20 +5265,59 @@ int take_hit(u32b damage_type, int damage, cptr hit_from)
 /*
  * Gain class experience
  */
+/* Saturate before adding: clamping after signed overflow is too late. */
+static s32b bounded_exp_sum(s32b value, s32b amount)
+{
+    value = MAX(0, MIN(PY_MAX_EXP, value));
+    if (amount > PY_MAX_EXP - value) return PY_MAX_EXP;
+    return value + amount;
+}
+
+/* Clamp the award before addition, so one large award cannot skip the cap.
+ * Existing over-limit saves are not delevelled; they simply gain nothing. */
+static s32b party_limit_exp_award(s32b amount, bool racial)
+{
+    int limit = party_exp_level_limit();
+    s32b current, level;
+    u64b ceiling;
+    if (!limit) return amount;
+    current = racial ? p_ptr->exp : p_ptr->cexp_info[p_ptr->pclass].cexp;
+    level = racial ? p_ptr->lev : p_ptr->cexp_info[p_ptr->pclass].clev;
+    if (level >= limit)
+    {
+        if (racial) p_ptr->exp_frac = 0;
+        else p_ptr->cexp_info[p_ptr->pclass].cexp_frac = 0;
+        return 0;
+    }
+    ceiling = (u64b)player_exp[limit - 2] *
+        (racial ? p_ptr->expfact : p_ptr->cexpfact[p_ptr->pclass]) / 100;
+    if (ceiling <= (u64b)MAX(0, current)) return 0;
+    if ((u64b)amount >= ceiling - MAX(0, current))
+    {
+        if (racial) p_ptr->exp_frac = 0;
+        else p_ptr->cexp_info[p_ptr->pclass].cexp_frac = 0;
+        return (s32b)(ceiling - MAX(0, current));
+    }
+    return amount;
+}
+
 void gain_class_exp(s32b amount)
 {
 	cexp_info_type *cexp_ptr = &p_ptr->cexp_info[p_ptr->pclass];
 
-	if (p_ptr->is_dead) return;
+	if (p_ptr->is_dead || amount < 0) return;
+
+	amount = party_limit_exp_award(amount, FALSE);
+	if (!amount) return;
 
 	/* Gain some class experience */
-	cexp_ptr->cexp += amount;
+	cexp_ptr->cexp = bounded_exp_sum(cexp_ptr->cexp, amount);
 
 	/* Slowly recover from class experience drainage */
 	if (cexp_ptr->cexp < cexp_ptr->max_cexp)
 	{
 		/* Gain max class experience (20%) (was 10%) */
-		cexp_ptr->max_cexp += amount / 5;
+		cexp_ptr->max_cexp = bounded_exp_sum(cexp_ptr->max_cexp, amount / 5);
 	}
 
 	/* Check class experience */
@@ -5272,16 +5330,19 @@ void gain_class_exp(s32b amount)
  */
 void gain_racial_exp(s32b amount)
 {
-	if (p_ptr->is_dead) return;
+	if (p_ptr->is_dead || amount < 0) return;
+
+	amount = party_limit_exp_award(amount, TRUE);
+	if (!amount) return;
 
 	/* Gain some racial experience */
-	p_ptr->exp += amount;
+	p_ptr->exp = bounded_exp_sum(p_ptr->exp, amount);
 
 	/* Slowly recover from racial experience drainage */
 	if (p_ptr->exp < p_ptr->max_exp)
 	{
 		/* Gain max racial experience (20%) (was 10%) */
-		p_ptr->max_exp += amount / 5;
+		p_ptr->max_exp = bounded_exp_sum(p_ptr->max_exp, amount / 5);
 	}
 
 	/* Check racial experience */
@@ -5462,7 +5523,7 @@ bool choose_magical_weapon(void)
 {
 	int num;
 	char choice;
-	int clev = p_ptr->cexp_info[p_ptr->pclass].clev;
+	int clev = party_spell_caster()->cexp_info[party_spell_caster()->pclass].clev;
 
 	if (!buki_motteruka(INVEN_RARM))
 	{

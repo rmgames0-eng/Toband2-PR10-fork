@@ -46,7 +46,7 @@ static byte spell_color(int type)
 	char c;
 
 	/* Lookup the default colors for this type */
-	cptr s = quark_str(gf_color[type]);
+	cptr s = quark_str(gf_color[type == GF_UMBRA ? GF_DARK : type]);
 
 	/* Oops */
 	if (!s) return (TERM_WHITE);
@@ -541,6 +541,7 @@ static bool project_f(int who, int r, int y, int x, int dam, int typ, u32b flg, 
 		case GF_FORCE:
 		case GF_GRAVITY:
 		case GF_ROCKET:
+		case GF_BRAINSTORM:
 		case GF_MANA:
 		case GF_METEOR:
 		case GF_VOLCANIC_BOMB:
@@ -608,6 +609,7 @@ static bool project_f(int who, int r, int y, int x, int dam, int typ, u32b flg, 
 
 		/* Darken the grid */
 		case GF_DARK_WEAK:
+		case GF_UMBRA:
 		case GF_DARK:
 		{
 			/* Notice */
@@ -1295,7 +1297,8 @@ static bool project_o(int who, int r, int y, int x, int dam, int typ, u32b flg)
 			}
 
 			/* Mana -- destroy everything */
-			case GF_MANA:
+			case GF_BRAINSTORM:
+		case GF_MANA:
 			{
 				do_kill = TRUE;
 #ifdef JP
@@ -1982,9 +1985,21 @@ static bool project_m(int who, int r, int y, int x, int dam, int typ, u32b flg, 
 		}
 
 		/* Dark -- opposite of Lite */
+		case GF_UMBRA:
 		case GF_DARK:
 		{
 			if (seen) obvious = TRUE;
+            if (typ == GF_UMBRA)
+            {
+                int power = who > 0 ? r_info[m_list[who].r_idx].level : p_ptr->lev * 2;
+                /* Monsters represent blindness with confusion, as RF5_BLIND does. */
+                do_conf = 12 + randint0(4);
+                /* Use the monster-versus-monster Hand of Doom saving throw. */
+                if (!(r_ptr->flags1 & RF1_UNIQUE) &&
+                    power + randint1(20) > r_ptr->level + 10 + randint1(20) &&
+                    !MON_STONING(m_ptr))
+                    (void)set_monster_stoning(c_ptr->m_idx, 1);
+            }
 			if (r_ptr->flagsr & (RFR_RES_DARK))
 			{
 #ifdef JP
@@ -2495,11 +2510,13 @@ static bool project_m(int who, int r, int y, int x, int dam, int typ, u32b flg, 
 		/* Meteor -- powerful magic missile */
 		/* Godly Spear -- powerful magic missile */
 		case GF_MISSILE:
+		case GF_BRAINSTORM:
 		case GF_MANA:
 		case GF_METEOR:
 		case GF_GODLY_SPEAR:
 		{
 			if (seen) obvious = TRUE;
+            if (typ == GF_BRAINSTORM) do_conf = randint0(4) + 4;
 			break;
 		}
 
@@ -5104,10 +5121,9 @@ static bool project_m(int who, int r, int y, int x, int dam, int typ, u32b flg, 
 	}
 
 	/* Confusion and Chaos resisters (and sleepers) never confuse */
-	else if (do_conf &&
-		 !(r_ptr->flags3 & (RF3_NO_CONF)) &&
-		 !(r_ptr->flagsr & (RFR_RES_CONF)) &&
-		 !(r_ptr->flagsr & (RFR_RES_CHAO)))
+	else if (do_conf && (typ == GF_BRAINSTORM || typ == GF_UMBRA ||
+        (!(r_ptr->flags3 & RF3_NO_CONF) && !(r_ptr->flagsr & RFR_RES_CONF) &&
+         !(r_ptr->flagsr & RFR_RES_CHAO))))
 	{
 		/* Obvious */
 		if (seen) obvious = TRUE;
@@ -5539,6 +5555,14 @@ static bool project_m(int who, int r, int y, int x, int dam, int typ, u32b flg, 
  * We return "TRUE" if any "obvious" effects were observed.  XXX XXX Actually,
  * we just assume that the effects were obvious, for historical reasons.
  */
+/* Secondary effects ignore resistance; only stoning receives a saving throw. */
+static void umbra_player_status(int rlev)
+{
+    bool stoning = randint0(100 + rlev / 2) >= p_ptr->skill_sav;
+    (void)set_blind(p_ptr->blind + randint1(5) + 2);
+    if (stoning && !p_ptr->stoning) (void)set_stoning(1);
+}
+
 static bool project_p(int who, cptr who_name, int r, int y, int x, int dam, int typ, u32b flg, int mod_elem_mode)
 {
 	int k = 0;
@@ -5807,21 +5831,27 @@ static bool project_p(int who, cptr who_name, int r, int y, int x, int dam, int 
 		}
 
 		/* Dark -- blinding */
+		case GF_UMBRA:
 		case GF_DARK:
 		{
+
 #ifdef JP
 			if (fuzzy) msg_print("何かで攻撃された！");
 #else
 			if (fuzzy) msg_print("You are hit by something!");
 #endif
 
-			if (WRAITH_FORM() || p_ptr->evil_equip || pclass_is_(CLASS_VAMPIRE)) break;
+            if (WRAITH_FORM() || p_ptr->evil_equip || pclass_is_(CLASS_VAMPIRE) || pclass_is_(CLASS_DARK_ELEMENT))
+            {
+                if (typ == GF_UMBRA) umbra_player_status(rlev);
+                break;
+            }
 
 			if (p_ptr->resist_dark)
 			{
 				dam *= 4; dam /= (randint1(4) + 7);
 			}
-			else if (!blind && !p_ptr->resist_blind)
+			else if (typ != GF_UMBRA && !blind && !p_ptr->resist_blind)
 			{
 				(void)set_blind(p_ptr->blind + randint1(5) + 2);
 			}
@@ -5832,12 +5862,14 @@ static bool project_p(int who, cptr who_name, int r, int y, int x, int dam, int 
 			ACTIVATE_MULTISHADOW();
 			get_damage = take_hit(DAMAGE_ATTACK, dam, killer);
 			STOP_MULTISHADOW();
+            if (typ == GF_UMBRA && !p_ptr->is_dead) umbra_player_status(rlev);
 			break;
 		}
 
 		/* Nether -- drain experience */
 		case GF_NETHER:
 		{
+			if (pclass_is_(CLASS_DARK_ELEMENT)) break;
 #ifdef JP
 			if (fuzzy) msg_print("地獄の力で攻撃された！");
 #else
@@ -6577,6 +6609,7 @@ static bool project_p(int who, cptr who_name, int r, int y, int x, int dam, int 
 		}
 
 		/* Pure damage */
+		case GF_BRAINSTORM:
 		case GF_MANA:
 		{
 #ifdef JP
@@ -6588,6 +6621,8 @@ static bool project_p(int who, cptr who_name, int r, int y, int x, int dam, int 
 			ACTIVATE_MULTISHADOW();
 			get_damage = take_hit(DAMAGE_ATTACK, dam, killer);
 			STOP_MULTISHADOW();
+            if (typ == GF_BRAINSTORM && get_damage > 0 && !p_ptr->is_dead)
+                (void)set_confused(p_ptr->confused + randint0(4) + 4);
 			break;
 		}
 
@@ -6660,7 +6695,8 @@ static bool project_p(int who, cptr who_name, int r, int y, int x, int dam, int 
 			if (fuzzy) msg_print("You are hit by something!");
 #endif
 
-			if ((prace_is_(RACE_GHOST)) || (prace_is_(RACE_SKELETON)) || (get_your_alignment_gne() == ALIGN_GNE_EVIL))
+			if (pclass_is_(CLASS_DARK_ELEMENT)) dam /= 2;
+			else if ((prace_is_(RACE_GHOST)) || (prace_is_(RACE_SKELETON)) || (get_your_alignment_gne() == ALIGN_GNE_EVIL))
 				dam *= 2;
 			ACTIVATE_MULTISHADOW();
 			if (p_ptr->ogre_equip)
@@ -8485,6 +8521,7 @@ bool project(int who, int rad, int y, int x, int dam, int typ, u32b flg, int mod
 					case GF_COLD:
 					case GF_POIS:
 					case GF_LITE:
+					case GF_UMBRA:
 					case GF_DARK:
 					case GF_NETHER:
 					case GF_WATER:
@@ -8506,7 +8543,8 @@ bool project(int who, int rad, int y, int x, int dam, int typ, u32b flg, int mod
 					case GF_PHYSICAL:
 					case GF_BLUNT:
 					case GF_EDGED:
-					case GF_MANA:
+					case GF_BRAINSTORM:
+		case GF_MANA:
 					case GF_METEOR:
 					case GF_VOLCANIC_BOMB:
 					case GF_DISINTEGRATE:

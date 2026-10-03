@@ -731,6 +731,7 @@ extern void ang_sort_swap_quest_num(vptr u, vptr v, int a, int b);
 extern void do_cmd_knowledge(void);
 extern void plural_aux(char * Name);
 extern void do_cmd_checkquest(void);
+extern bool choose_vault_artifact(void);
 extern void do_cmd_time(void);
 extern void do_cmd_give_money(void);
 
@@ -832,6 +833,7 @@ extern void place_closed_door(int y, int x);
 extern bool place_quest_monsters(void);
 extern void clear_cave(void);
 extern void generate_cave(void);
+extern void ensure_demon_gate(void);
 
 /* init1.c */
 extern byte color_char_to_attr(char c);
@@ -1032,6 +1034,7 @@ extern bool save_floor(saved_floor_type *sf_ptr, u32b mode);
 /* spells1.c */
 extern bool in_disintegration_range(int y1, int x1, int y2, int x2);
 extern void breath_shape(u16b *path_g, int dist, int *pgrids, byte *gx, byte *gy, u16b *gm, int *pgm_rad, int rad, int y1, int x1, int y2, int x2, bool disint_ball, bool real_breath);
+extern bool diablo_death(cptr hit_from);
 extern int take_hit(u32b damage_type, int damage, cptr kb_str);
 extern u16b bolt_pict(int y, int x, int ny, int nx, int typ);
 extern sint project_path(u16b *gp, int range, int y1, int x1, int y2, int x2, u32b flg);
@@ -1317,6 +1320,7 @@ extern int inkey_special(bool numpad_cursor);
 extern bool is_daytime(void);
 extern void extract_day_hour_min(int *day, int *hour, int *min);
 extern void prt_time(void);
+extern void display_floor_grid(int y, int x);
 extern cptr map_name(void);
 extern void cnv_stat(int val, char *out_val);
 extern s16b modify_stat_value(int value, int amount);
@@ -1615,8 +1619,14 @@ extern bool iskanji2(cptr s, int x);
 
 /* report.c */
 extern cptr make_screen_dump(void);
+extern void report_score(void);
 
 /* element.c */
 extern void do_cmd_element(void);
 extern void do_cmd_element_browse(void);
 
+
+extern u32b random_unique_kills;
+extern void random_unique_reset(void);
+extern bool random_unique_available(int r_idx);
+extern bool random_unique_generate(int r_idx);

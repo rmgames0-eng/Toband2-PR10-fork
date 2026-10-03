@@ -795,8 +795,8 @@ E:Building
 G:+:B
 I:0:0:0:0:40:15
 
-N:156:·úÊª
-E:Building
+N:156:Îû¹ö¤Îº×ÃÅ
+E:Purgatory Altar
 G:+:B
 I:0:0:0:0:40:15
 
@@ -878,3 +878,8 @@ E:Deneb's shop
 G:+:v
 I:0:0:0:0:40:15
 
+
+N:204:¥«¥ª¥¹¥²¡¼¥È
+E:chaos gate
+G:0:v
+I:0:0:0:0:0:0

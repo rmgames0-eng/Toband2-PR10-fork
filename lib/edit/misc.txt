@@ -13,7 +13,7 @@ M:WX:131
 M:WY:66
 
 # Maximum number of monsters in r_info.txt
-M:R:984
+M:R:992
 
 # Maximum number of ego-monsters in r_ego.txt
 M:S:11
@@ -28,7 +28,7 @@ M:V:129
 M:F:255
 
 # Maximum number of artifacts in a_info.txt
-M:A:203
+M:A:206
 
 # Maximum number of ego-items in e_info.txt
 M:E:247
@@ -46,7 +46,7 @@ M:M:1024
 M:P:14
 
 # Maximum number of player classes
-M:C:39
+M:C:41
 
 # Maximum number of player history lines
 M:H:300

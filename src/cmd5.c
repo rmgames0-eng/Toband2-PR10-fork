@@ -11,6 +11,7 @@
  */
 
 #include "angband.h"
+#include "party.h"
 
 cptr spell_categoly_name(int tval)
 {
@@ -42,7 +43,18 @@ cptr spell_categoly_name(int tval)
  */
 
 
-static int get_spell(int *sn, cptr prompt, int sval, int use_realm)
+static void print_book_spells(int selected, byte *spells, int num, int realm, bool show_caster)
+{
+    int row = 1;
+    if (show_caster)
+    {
+        prt(format("%s  MP %ld/%ld", player_name,
+            (long)p_ptr->csp, (long)p_ptr->msp), row++, 15);
+    }
+    print_spells(selected, spells, num, row, 15, realm);
+}
+
+static int get_spell(int *sn, cptr prompt, int sval, int use_realm, bool show_caster)
 {
 	int         i;
 	int         spell = -1;
@@ -63,7 +75,8 @@ static int get_spell(int *sn, cptr prompt, int sval, int use_realm)
 	if (repeat_pull(sn))
 	{
 		/* Verify the spell */
-		if (spell_okay(*sn, use_realm))
+		if (*sn >= 0 && *sn < 32 && can_use_realm(use_realm) &&
+            (fake_spell_flags[use_realm - 1][sval] & (1UL << *sn)) && spell_okay(*sn, use_realm))
 		{
 			/* Success */
 			return (TRUE);
@@ -173,7 +186,7 @@ static int get_spell(int *sn, cptr prompt, int sval, int use_realm)
 			}
 			if (menu_line > num) menu_line -= num;
 			/* Display a list of spells */
-			print_spells(menu_line, spells, num, 1, 15, use_realm);
+			print_book_spells(menu_line, spells, num, use_realm, show_caster);
 			if (ask) continue;
 		}
 		else
@@ -191,7 +204,7 @@ static int get_spell(int *sn, cptr prompt, int sval, int use_realm)
 					screen_save();
 
 					/* Display a list of spells */
-					print_spells(menu_line, spells, num, 1, 15, use_realm);
+					print_book_spells(menu_line, spells, num, use_realm, show_caster);
 				}
 
 				/* Hide the list */
@@ -411,9 +424,9 @@ void do_cmd_browse(void)
 	{
 		/* Ask for a spell, allow cancel */
 #ifdef JP
-		if (!get_spell(&spell, "読む", o_ptr->sval, use_realm))
+		if (!get_spell(&spell, "読む", o_ptr->sval, use_realm, FALSE))
 #else
-		if (!get_spell(&spell, "browse", o_ptr->sval, use_realm))
+		if (!get_spell(&spell, "browse", o_ptr->sval, use_realm, FALSE))
 #endif
 		{
 			/* If cancelled, leave immediately. */
@@ -459,9 +472,9 @@ void do_cmd_browse(void)
 /*
  * Cast a spell
  */
-void do_cmd_cast(void)
+static void cast_selected_book(int item)
 {
-	int	item, sval, spell, realm;
+	int	sval, spell, realm;
 	int	chance;
 	int	use_realm;
 	int	use_mana;
@@ -472,20 +485,18 @@ void do_cmd_cast(void)
 
 	magic_type	*s_ptr;
 
-	cptr q, s;
 
-	/* Require spell ability */
-	if (!class_info[p_ptr->pclass].realm_choices)
-	{
-#ifdef JP
-		msg_print("呪文を唱えられない！");
-#else
-		msg_print("You cannot cast spells!");
-#endif
-
-		return;
-	}
-
+    if (p_ptr->anti_magic || is_anti_magic_grid(-1, py, px))
+    {
+        msg_print("反魔法の力が魔法を邪魔した！");
+        energy_use = p_ptr->anti_magic ? 0 : 100;
+        return;
+    }
+    if (p_ptr->shero)
+    {
+        msg_print("狂戦士化していて頭が回らない！");
+        return;
+    }
 	/* Require lite */
 	if (p_ptr->blind || no_lite())
 	{
@@ -512,27 +523,6 @@ void do_cmd_cast(void)
 
 	prayer = spell_categoly_name(mp_ptr->spell_book);
 
-	/* Restrict choices to spell books */
-	item_tester_tval = mp_ptr->spell_book;
-
-	/* Get an item */
-#ifdef JP
-	q = "どの呪文書を使いますか? ";
-#else
-	q = "Use which book? ";
-#endif
-
-#ifdef JP
-	s = "呪文書がない！";
-#else
-	s = "You have no spell books!";
-#endif
-
-	if (!get_item(&item, q, s, (USE_INVEN | USE_FLOOR)))
-	{
-		return;
-	}
-
 	/* Get the item (in the pack) */
 	if (item >= 0)
 	{
@@ -556,18 +546,20 @@ void do_cmd_cast(void)
 
 	realm = tval2realm(o_ptr->tval);
 
+    if (party_casting) msg_format("%sが魔法を唱えます。", player_name);
+
 	/* Ask for a spell */
 #ifdef JP
 	if (!get_spell(&spell,
 		           ((mp_ptr->spell_book == TV_HOLY_BOOK) ? "詠唱する" : "唱える"), 
-		           sval, realm))
+		           sval, realm, TRUE))
 	{
 		if (spell == -2) msg_format("その本には知っている%sがない。", prayer);
 		return;
 	}
 #else
 	if (!get_spell(&spell, ((mp_ptr->spell_book == TV_HOLY_BOOK) ? "recite" : "cast"),
-		sval, realm))
+		sval, realm, TRUE))
 	{
 		if (spell == -2)
 			msg_format("You don't know any %ss in that book.", prayer);
@@ -579,6 +571,20 @@ void do_cmd_cast(void)
 	use_realm = tval2realm(o_ptr->tval);
 
 	s_ptr = &mp_ptr->info[realm - 1][spell];
+
+    /* Do not spend a turn or mana when resurrection has no target. */
+    if (((realm == REALM_HOLY && spell == 23) ||
+         (realm == REALM_DEATH && spell == 25)) && !party_has_dead_member())
+    {
+        msg_print("蘇生できる仲間がいません。");
+        return;
+    }
+
+    if (realm == REALM_DRAKONITE && spell == 6 && !party_has_reincarnation_target())
+    {
+        msg_print("転生できるスケルトンかゴーストの仲間がいません。");
+        return;
+    }
 
 	use_mana = calc_use_mana(spell, realm);
 
@@ -813,6 +819,8 @@ void do_cmd_cast(void)
 	if (p_ptr->cexp_info[CLASS_HIGHWITCH].clev > 49) energy_use -= 50;
 	else if ((p_ptr->cexp_info[CLASS_HIGHWITCH].clev > 29) || (p_ptr->cexp_info[CLASS_SIRENE].clev > 44) || (p_ptr->cexp_info[CLASS_WIZARD].clev > 44) || (p_ptr->cexp_info[CLASS_ARCHMAGE].clev > 44)) energy_use -= 25;
 
+	energy_use = party_magic_cost(energy_use);
+
 	/* Sufficient mana */
 	if (use_mana <= p_ptr->csp)
 	{
@@ -875,6 +883,25 @@ void do_cmd_cast(void)
 }
 
 
+static bool item_tester_party_book(object_type *book)
+{
+    return party_book_caster(book) >= 0;
+}
+
+void do_cmd_cast(void)
+{
+    int item, member;
+    object_type *book;
+    energy_use = 0;
+    item_tester_tval = 0;
+    item_tester_hook = item_tester_party_book;
+    if (!get_item(&item, "どの呪文書を使いますか? ", "使える呪文書がない！", USE_INVEN | USE_FLOOR)) return;
+    book = item >= 0 ? &inventory[item] : &o_list[-item];
+    member = party_book_caster(book);
+    if (member >= 0) party_cast_book(member, item, cast_selected_book);
+}
+
+
 /*
  * Pray a prayer -- Unused in TOband
  */
@@ -914,7 +941,7 @@ void do_cmd_pray(void)
 				}
 
 				msg_format("祈りは%sに届いた。", god_name);
-				inc_area_elem(0, pelem, 20, ((p_ptr->lev / 10) + 1), FALSE);
+				inc_area_elem(0, pelem, 200, ((p_ptr->lev / 10) + 1), FALSE);
 				no_effect = FALSE;
 			}
 			break;

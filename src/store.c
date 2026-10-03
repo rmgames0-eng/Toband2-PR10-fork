@@ -3866,14 +3866,7 @@ static void store_sell(void)
 	}
 
 
-	if (dungeon_type == DUNGEON_HEAVEN)
-	{
-		if (object_is_known(o_ptr) && (o_ptr->name1 == ART_BRUNHILD))
-		{
-			msg_print("天界から帰還するにはブリュンヒルドが必要です。");
-			return;
-		}
-	}
+
 
 
 	/* Hack -- Cannot remove cursed items */
@@ -4480,7 +4473,7 @@ static void change_player_class(void)
 		classes[num++].can_choose = can_choose_class(i, CLASS_CHOOSE_MODE_NORMAL);
 	}
 
-	if (!num || (!astral_mode && (cp_ptr->c_flags & PCF_NO_CHANGE)) ||
+	if (!num || (!astral_mode && (cp_ptr->c_flags & PCF_NO_CHANGE) && !can_choose_class(CLASS_TEMPLECOMMAND, CLASS_CHOOSE_MODE_NORMAL)) ||
 		(astral_mode && (cp_ptr->c_flags & PCF_REINCARNATE) && (cp_ptr->c_flags & PCF_NO_CHANGE)))
 	{
 #ifdef JP
@@ -4744,7 +4737,7 @@ static void change_player_class(void)
 	mp_ptr = &m_info[p_ptr->pclass];
 	p_ptr->s_ptr = &s_info[p_ptr->pclass];
 	cexp_ptr = &p_ptr->cexp_info[p_ptr->pclass];
-	
+
 	for (i = 0; i < MAX_REALM+1; i++)
 		if (p_ptr->magic_exp[i] == 0) p_ptr->magic_exp[i] = p_ptr->s_ptr->s_eff[i];
 
@@ -4783,6 +4776,9 @@ static void change_player_class(void)
 		p_ptr->player_gsp = 0;
 		break;
 
+	case CLASS_TEMPLECOMMAND:
+        temple_command_learn();
+        break;
 	case CLASS_MEDIUM:
 		choose_realm();
 		break;
@@ -5683,6 +5679,12 @@ static void store_process_command(void)
 				change_player_class();
 				display_store();
 			}
+            else if ((cur_store_num == STORE_HOME) && old_town_num != NO_TOWN &&
+                     command_cmd == 'T' && party_count > 1 && !astral_mode)
+            {
+                do_cmd_party_train();
+                display_store();
+            }
             else if ((cur_store_num == STORE_HOME) && (old_town_num != NO_TOWN) &&
                      (command_cmd == 'a') && party_can_recruit())
             {
@@ -5963,14 +5965,22 @@ void do_cmd_store(void)
 
 #endif
 
+            if (old_town_num != NO_TOWN && party_count > 1 && !astral_mode)
+            {
+#ifdef JP
+                put_str(rogue_like_commands ? "\\T) トレーニング" : " T) トレーニング", 19, 0);
+#else
+                put_str(rogue_like_commands ? "\\T) Training" : " T) Training", 19, 0);
+#endif
+            }
             if (old_town_num != NO_TOWN && party_can_recruit())
             {
 #ifdef JP
-                if (st_ptr->stock_num > 12) prt(" -/SPACE) 前/次ページ", 22, 0);
-                prt(" a) 仲間を加える       ", 23, 0);
+                if (st_ptr->stock_num > 12) put_str(" -/SPACE) 前/次ページ", 22, 0);
+                put_str(" a) 仲間を加える       ", 23, 0);
 #else
-                if (st_ptr->stock_num > 12) prt(" -/SPACE) Prev/Next page", 22, 0);
-                prt(" a) Recruit a companion", 23, 0);
+                if (st_ptr->stock_num > 12) put_str(" -/SPACE) Prev/Next page", 22, 0);
+                put_str(" a) Recruit a companion", 23, 0);
 #endif
             }
 		}

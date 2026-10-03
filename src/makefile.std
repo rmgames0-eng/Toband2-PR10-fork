@@ -65,7 +65,7 @@ SRCS = \
 	dungeon.c effects.c files.c flavor.c floors.c generate.c \
 	grid.c init1.c init2.c japanese.c \
 	load.c melee1.c melee2.c \
-	monster1.c monster2.c mspells1.c mspells2.c \
+	monster1.c monster2.c random-unique.c mspells1.c mspells2.c \
 	mutation.c \
 	obj_kind.c object1.c object2.c racial.c \
 	report.c rooms.c save.c scores.c spells1.c \
@@ -96,7 +96,7 @@ OBJS = \
 	dungeon.o effects.o files.o flavor.o floors.o generate.o \
 	grid.o init1.o init2.o japanese.o \
 	load.o melee1.o melee2.o \
-	monster1.o monster2.o mspells1.o mspells2.o \
+	monster1.o monster2.o random-unique.o mspells1.o mspells2.o \
 	mutation.o \
 	obj_kind.o object1.o object2.o racial.o \
 	report.o rooms.o save.o scores.o spells1.o \

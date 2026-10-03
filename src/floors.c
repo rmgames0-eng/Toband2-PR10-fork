@@ -54,8 +54,8 @@ void init_saved_floors(bool force)
 			{
 #ifdef JP
 				msg_print("エラー：古いテンポラリ・ファイルが残っています。");
-				msg_print("TOband2を二重に起動していないか確認してください。");
-				msg_print("過去にTOband2がクラッシュした場合は一時ファイルを");
+				msg_print("TOband-R3を二重に起動していないか確認してください。");
+				msg_print("過去にTOband-R3がクラッシュした場合は一時ファイルを");
 				msg_print("強制的に削除して実行を続けられます。");
 				if (!get_check("強制的に削除してもよろしいですか？")) quit("実行中止");
 #else

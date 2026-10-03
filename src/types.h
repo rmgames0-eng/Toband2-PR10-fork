@@ -1053,6 +1053,8 @@ struct player_type
 	s16b celem;			/* Current Element index */
 
 	u16b expfact;       /* Experience factor */
+    char temple_tech_name[32];
+    u32b temple_tech_effects;
 	u16b cexpfact[MAX_CLASS];       /* Class Experience factor */
 
 	s16b age;			/* Characters age */

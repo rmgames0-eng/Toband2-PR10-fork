@@ -14,6 +14,208 @@
 #include "party.h"
 
 
+/* The bit order is part of the save format. Never reorder existing effects. */
+static const int temple_effect_flags[TEMPLE_EFFECT_COUNT] = {
+    TR_VORPAL, TR_BRAND_ACID, TR_BRAND_ELEC, TR_BRAND_FIRE, TR_BRAND_COLD,
+    TR_BRAND_POIS, TR_SLAY_ANIMAL, TR_SLAY_EVIL, TR_SLAY_UNDEAD, TR_SLAY_DEMON,
+    TR_SLAY_ORC, TR_SLAY_TROLL, TR_SLAY_GIANT, TR_SLAY_DRAGON, TR_SLAY_GOOD,
+    TR_SLAY_HUMAN, TR_SLAY_LIVING, -1
+};
+static cptr temple_effect_names[TEMPLE_EFFECT_COUNT] = {
+    "切れ味", "酸属性", "電撃属性", "火炎属性", "冷気属性", "毒属性",
+    "動物倍打", "邪悪倍打", "アンデッド倍打", "悪魔倍打", "オーク倍打",
+    "トロル倍打", "巨人倍打", "ドラゴン倍打", "善良倍打", "人間倍打",
+    "生物倍打", "1マスノックバック"
+};
+
+bool temple_command_eligible(void)
+{
+    int i;
+    if (astral_mode || party_creating || party_count != 3 || p_ptr->is_dead || p_ptr->chp < 0 ||
+        !pclass_is_(CLASS_TEMPLEKNIGHT) || chaos_frame[ETHNICITY_LODIS] < 150) return FALSE;
+    for (i = 0; i < party_count; ++i)
+    {
+        const party_member *member = &party_members[i];
+        if (i == party_active) continue;
+        if (member->dead || member->player.is_dead || member->player.chp < 0) return FALSE;
+        if (member->player.pclass != CLASS_TEMPLEKNIGHT) return FALSE;
+    }
+    return TRUE;
+}
+
+void temple_command_flags(u32b effects, u32b *flags)
+{
+    int i;
+    for (i = 0; i < TEMPLE_EFFECT_COUNT; ++i)
+        if ((effects & (1UL << i)) && temple_effect_flags[i] >= 0)
+            add_flag(flags, temple_effect_flags[i]);
+}
+
+void temple_command_describe(u32b effects, char *buf, int len)
+{
+    int i;
+    buf[0] = 0;
+    for (i = 0; i < TEMPLE_EFFECT_COUNT; ++i)
+        if (effects & (1UL << i))
+        {
+            int used = strlen(buf);
+            strnfmt(buf + used, len - used, "%s%s", used ? "、" : "", temple_effect_names[i]);
+        }
+}
+
+bool temple_command_name_valid(cptr name)
+{
+    int count = 0;
+    bool nonspace = FALSE;
+    const unsigned char *s = (const unsigned char *)name;
+    while (*s)
+    {
+        if (*s < 32 || *s == 127 || ++count > 10) return FALSE;
+        if (*s != ' ') nonspace = TRUE;
+#ifdef JP
+        if (iskanji(*s)) { if (!s[1]) return FALSE; ++s; }
+#endif
+        ++s;
+    }
+    return nonspace;
+}
+
+void temple_command_learn(void)
+{
+    char effects[256], name[32] = "必殺技";
+    int n, i, row = 4;
+    bool old_can_save = can_save;
+    if (p_ptr->temple_tech_effects) return;
+    can_save = FALSE;
+    n = randint1(3);
+    while (n)
+    {
+        u32b bit = 1UL << randint0(TEMPLE_EFFECT_COUNT);
+        if (p_ptr->temple_tech_effects & bit) continue;
+        p_ptr->temple_tech_effects |= bit;
+        --n;
+    }
+    screen_save();
+    Term_clear();
+    prt("オリジナル必殺技の命名", 1, 2);
+    prt("MP20・射程2マスの通常攻撃", 2, 2);
+    prt("追加効果：", 3, 2);
+    for (i = 0; i < TEMPLE_EFFECT_COUNT; ++i)
+        if (p_ptr->temple_tech_effects & (1UL << i)) prt(temple_effect_names[i], row++, 4);
+    prt("名前は10文字まで。Escで「必殺技」にします。", row + 1, 2);
+    while (TRUE)
+    {
+        if (!get_string("必殺技名：", name, sizeof(name))) strcpy(name, "必殺技");
+        if (temple_command_name_valid(name)) break;
+        prt("名前は空欄にせず、10文字以内で入力してください。", row + 3, 2);
+    }
+    strcpy(p_ptr->temple_tech_name, name);
+    screen_load();
+    can_save = old_can_save;
+    temple_command_describe(p_ptr->temple_tech_effects, effects, sizeof(effects));
+    msg_format("必殺技『%s』を習得した。", name);
+    msg_format("効果：%s。", effects);
+}
+
+void temple_command_power(void)
+{
+    int dir, ty, tx, i, count, old_length = project_length;
+    u16b path[8];
+    energy_use = 0;
+    if (!pclass_is_(CLASS_TEMPLECOMMAND) || !p_ptr->temple_tech_effects) return;
+    if (p_ptr->confused) { msg_print("混乱していて必殺技を使えません！"); return; }
+    if (p_ptr->afraid) { msg_print("恐くて攻撃できない！"); return; }
+    if (p_ptr->csp < 20) { msg_print("MPが足りません。"); return; }
+    if (!p_ptr->migite && !p_ptr->hidarite) { msg_print("攻撃できる武器がありません。"); return; }
+    project_length = 2;
+    if (!get_aim_dir(&dir)) { project_length = old_length; return; }
+    project_length = old_length;
+    if (dir == 5 && target_okay()) { ty = target_row; tx = target_col; }
+    else { ty = py + ddy[dir] * 2; tx = px + ddx[dir] * 2; }
+    count = project_path(path, 2, py, px, ty, tx, PROJECT_STOP);
+    for (i = 0; i < count; ++i)
+    {
+        ty = GRID_Y(path[i]); tx = GRID_X(path[i]);
+        if (!in_bounds(ty, tx) || !cave_floor_bold(ty, tx)) break;
+        if (cave[ty][tx].m_idx)
+        {
+            p_ptr->csp -= 20;
+            if (!temple_command_attack(ty, tx)) p_ptr->csp += 20;
+            p_ptr->redraw |= PR_MANA;
+            p_ptr->window |= PW_PLAYER | PW_SPELL;
+            return;
+        }
+    }
+    msg_print("射程内に攻撃できる敵がいません。");
+}
+
+#define DARK_ELEMENT_DOOR 1001
+#define DARK_ELEMENT_CHANGE 1002
+#define DARK_ELEMENT_ATTACK 1003
+#define DARK_ELEMENT_EXHALATIO 1005
+
+static cptr dark_element_attack_name(void)
+{
+    switch (get_cur_pelem())
+    {
+    case ELEM_WIND: return "トニトルス";
+    case ELEM_AQUA: return "コンゲラーティオ";
+    case ELEM_FIRE: return "ディールプティオ";
+    case ELEM_EARTH: return "ポン・ドゥス";
+    default: return "エレメント攻撃";
+    }
+}
+
+/* Fixed MP costs: these class powers never substitute HP for mana. */
+static void dark_element_power(int command)
+{
+    int cost = command == DARK_ELEMENT_DOOR ? 10 : (command == DARK_ELEMENT_ATTACK || command == DARK_ELEMENT_EXHALATIO) ? 20 : 0;
+    int elem, typ;
+    energy_use = 0;
+    if (!pclass_is_(CLASS_DARK_ELEMENT)) return;
+    if (p_ptr->confused) { msg_print("混乱していて特殊能力を使えません！"); return; }
+    if (p_ptr->csp < cost) { msg_print("MPが足りません。 "); return; }
+    if (command == DARK_ELEMENT_CHANGE)
+    {
+        elem = choose_elem();
+        if (elem < MIN_ELEM || elem >= ELEM_NUM) return;
+        p_ptr->pelem = p_ptr->celem = elem;
+        init_realm_table();
+        p_ptr->update |= PU_BONUS | PU_SPELLS;
+        p_ptr->redraw |= PR_BASIC | PR_EXTRA | PR_MAP;
+        p_ptr->window |= PW_PLAYER | PW_SPELL;
+        msg_print("コッレクティオ！ エレメントを変更した。");
+    }
+    else if (command == DARK_ELEMENT_DOOR)
+    {
+        if (!dimension_door(p_ptr->lev)) return;
+    }
+    else if (command == DARK_ELEMENT_ATTACK)
+    {
+        switch (get_cur_pelem())
+        {
+        case ELEM_FIRE: typ = GF_FIRE; break;
+        case ELEM_AQUA: typ = GF_COLD; break;
+        case ELEM_EARTH: typ = GF_ACID; break;
+        case ELEM_WIND: typ = GF_ELEC; break;
+        default: msg_print("エレメントがないため使えません。"); return;
+        }
+        project_hack(typ, 500 + randint1(500));
+    }
+    else if (command == DARK_ELEMENT_EXHALATIO)
+    {
+        mass_genocide(300, TRUE);
+    }
+    else return;
+    p_ptr->csp -= cost;
+    energy_use = 100;
+    p_ptr->redraw |= PR_MANA;
+    p_ptr->window |= PW_PLAYER | PW_SPELL;
+}
+
+
+
+
 static bool do_cmd_archer(void)
 {
 	int ext=0;
@@ -3062,7 +3264,7 @@ static bool special_blow_aux(s32b command)
 		if (!(weapon_type_bit(get_weapon_type(&k_info[inventory[INVEN_RARM].k_idx])) & sb_ptr->weapon_type))
 		{
 			strcpy(buf, "この必殺技を使うには");
-			for (i = 1; i <= MAX_WT; i++)
+			for (i = 1; i < MAX_WT; i++)
 			{
 				if (weapon_type_bit(i) & (sb_ptr->weapon_type & ~(WT_BIT_GUN | WT_BIT_BOW)))
 				{
@@ -4423,6 +4625,33 @@ void do_cmd_racial_power(void)
 		power_desc[num++].number = -5;
 		break;
 	}
+    case CLASS_TEMPLECOMMAND:
+        if (p_ptr->temple_tech_effects)
+        {
+            strcpy(power_desc[num].name, p_ptr->temple_tech_name);
+            power_desc[num].level = 1;
+            power_desc[num].cost = 20;
+            power_desc[num].stat = A_STR;
+            power_desc[num].fail = 0;
+            power_desc[num++].number = TEMPLE_COMMAND_POWER;
+        }
+        break;
+    case CLASS_DARK_ELEMENT:
+    {
+        int power;
+        for (power = 0; power < 4; ++power)
+        {
+            if (power == 2 && get_cur_pelem() == NO_ELEM) continue;
+            strcpy(power_desc[num].name, power == 0 ? "次元の扉" :
+                power == 1 ? "コッレクティオ" : power == 2 ? dark_element_attack_name() : "エクスハラティオ");
+            power_desc[num].level = 1;
+            power_desc[num].cost = power == 0 ? 10 : power == 1 ? 0 : 20;
+            power_desc[num].stat = A_INT;
+            power_desc[num].fail = 0;
+            power_desc[num++].number = power == 3 ? DARK_ELEMENT_EXHALATIO : DARK_ELEMENT_DOOR + power;
+        }
+        break;
+    }
 	case CLASS_ELEMENTALER:
 	{
 #ifdef JP
@@ -4745,7 +4974,7 @@ void do_cmd_racial_power(void)
 					}
 					strcat(dummy, format("%-23.23s %2d %4d %3d%%",
 						power_desc[ctr].name, power_desc[ctr].level, power_desc[ctr].cost,
-						power_desc[ctr].number == PARTY_POWER ? 0 : 100 - racial_chance(&power_desc[ctr])));
+						(power_desc[ctr].number >= PARTY_POWER && power_desc[ctr].number <= TEMPLE_COMMAND_POWER) ? 0 : 100 - racial_chance(&power_desc[ctr])));
 					prt(dummy, y1, x1);
 					ctr++;
 				}
@@ -4830,7 +5059,10 @@ void do_cmd_racial_power(void)
 	}
 	repeat_push(i);
 	} /*if (!repeat_pull(&i) || ...)*/
+    if (power_desc[i].number == TEMPLE_COMMAND_POWER) { temple_command_power(); return; }
     if (power_desc[i].number == PARTY_POWER) { do_cmd_party(); return; }
+    if (power_desc[i].number >= DARK_ELEMENT_DOOR && power_desc[i].number <= DARK_ELEMENT_EXHALATIO)
+    { dark_element_power(power_desc[i].number); return; }
 	if (p_ptr->confused)
 	{
 #ifdef JP

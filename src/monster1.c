@@ -999,9 +999,9 @@ static void roff_aux(int r_idx, int mode)
 #endif
 
 #ifdef JP
-	if (flags6 & (RF6_SPECIAL))  {vp[vn] = "特別な行動をする";color[vn++] = TERM_VIOLET;}
+	if (flags6 & (RF6_SPECIAL))  {vp[vn] = (r_idx == MON_ASMODE) ? "ウンブラ（暗黒攻撃、耐性を無視する盲目と石化進行）" : (r_idx == MON_DAGDA) ? "ブレインストーム（混乱耐性を無視する魔力の嵐）" : (r_idx == MON_DIABLO) ? "デス（HPが半分以下の相手を即死させる）" : "特別な行動をする";color[vn++] = TERM_VIOLET;}
 #else
-	if (flags6 & (RF6_SPECIAL))  {vp[vn] = "do something";color[vn++] = TERM_VIOLET;}
+	if (flags6 & (RF6_SPECIAL))  {vp[vn] = (r_idx == MON_ASMODE) ? "unleash Umbra (darkness, irresistible blindness and gradual petrification)" : (r_idx == MON_DAGDA) ? "unleash Brainstorm" : (r_idx == MON_DIABLO) ? "cast Death on a half-health target" : "do something";color[vn++] = TERM_VIOLET;}
 #endif
 
 	/* Describe inate attacks */
@@ -1205,6 +1205,12 @@ static void roff_aux(int r_idx, int mode)
 	if (flagsa & (RFA_BR_PURE_WIND))	{vp[vn] = "*wind*";color[vn++] = elem_attr(ELEM_WIND);}
 #endif
 
+
+#ifdef JP
+	if (flagsa & RFA_BR_PURE_ELEM) {vp[vn] = "自分の*エレメント*";color[vn++] = TERM_VIOLET;}
+#else
+	if (flagsa & RFA_BR_PURE_ELEM) {vp[vn] = "its own *element*";color[vn++] = TERM_VIOLET;}
+#endif
 
 	/* Describe breaths */
 	if (vn)
@@ -4091,6 +4097,7 @@ bool monster_has_hostile_alignment(monster_type *m_ptr, monster_race *r_ptr)
 		}
 		switch (p_ptr->pclass)
 		{
+		case CLASS_TEMPLECOMMAND:
 		case CLASS_TEMPLEKNIGHT:
 			sub_align1 |= (SUB_ALIGN_TEMPLE);
 			break;

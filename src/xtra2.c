@@ -11,6 +11,25 @@
  */
 
 #include "angband.h"
+#include "party.h"
+
+
+/* Announce only the recruitment slot unlocked by this completed quest. */
+static void announce_party_recruitment(int quest_id)
+{
+	int reward;
+	if (quest_id == QUEST_ARMORICA) reward = 0;
+	else if (quest_id == QUEST_BARMAMUTHA_L || quest_id == QUEST_BARMAMUTHA_C) reward = 1;
+	else return;
+	if ((party_rewards & (1 << reward)) || !party_can_recruit()) return;
+#ifdef JP
+	msg_print("あなたの名声を聞いた戦士が仲間がなりたがっています。");
+	msg_print("自宅で仲間を雇用できます。");
+#else
+	msg_print("A warrior has heard of your fame and wishes to join you.");
+	msg_print("You can recruit a companion at home.");
+#endif
+}
 
 
 static int level_factor(s32b clev)
@@ -109,6 +128,9 @@ void check_class_experience(void)
 	while ((cexp_ptr->clev < PY_MAX_LEVEL) &&
 	       (cexp_ptr->cexp >= (player_exp[cexp_ptr->clev - 1] * p_ptr->cexpfact[p_ptr->pclass] / 100L)))
 	{
+		/* Growth eligibility belongs to this level, not the whole XP award. */
+		level_inc_stat = FALSE;
+
 		/* Gain a level */
 		cexp_ptr->clev++;
 
@@ -118,6 +140,8 @@ void check_class_experience(void)
 			int lfact = level_factor(cexp_ptr->clev);
 			int gfact = gain_factor(cexp_ptr->clev, total_max_clev);
 
+			/* Match separate XP awards when the loop advances again. */
+			total_max_clev += cexp_ptr->clev - cexp_ptr->max_clev;
 			cexp_ptr->max_clev = cexp_ptr->clev;
 			if (cexp_ptr->max_clev > cexp_ptr->max_max_clev) cexp_ptr->max_max_clev = cexp_ptr->max_clev;
 
@@ -248,7 +272,7 @@ void check_class_experience(void)
 	}
 
 	/* Load the "pref" files */
-	if (prev_lev != cexp_ptr->clev) load_all_pref_files();
+	if (!party_training && !party_casting && prev_lev != cexp_ptr->clev) load_all_pref_files();
 }
 
 
@@ -316,6 +340,8 @@ void check_racial_experience(void)
 	while ((p_ptr->lev < PY_MAX_LEVEL) &&
 	       (p_ptr->exp >= (player_exp[p_ptr->lev-1] * p_ptr->expfact / 100L)))
 	{
+		level_inc_stat = FALSE;
+
 		/* Gain a level */
 		p_ptr->lev++;
 
@@ -337,7 +363,7 @@ void check_racial_experience(void)
 			/* Limit skills */
 			if (p_ptr->gx_spd > 30000) p_ptr->gx_spd = 30000;
 
-			if (p_ptr->gift & GIFT_TAROT)
+			if ((p_ptr->gift & GIFT_TAROT) && !party_training)
 			{
 				level_reward = TRUE;
 			}
@@ -471,7 +497,7 @@ void check_racial_experience(void)
 	}
 
 	/* Load the "pref" files */
-	if (prev_lev != p_ptr->lev) load_all_pref_files();
+	if (!party_training && !party_casting && prev_lev != p_ptr->lev) load_all_pref_files();
 }
 
 
@@ -689,6 +715,7 @@ void check_quest_completion(monster_type *m_ptr)
 						msg_print("You just completed your quest!");
 #endif
 
+						announce_party_recruitment(i);
 						msg_print(NULL);
 					}
 
@@ -738,6 +765,7 @@ void check_quest_completion(monster_type *m_ptr)
 							msg_print("You just completed your quest!");
 #endif
 
+						announce_party_recruitment(i);
 							msg_print(NULL);
 						}
 						if (quest_is_fixed(i) && !(quest[i].flags & QUEST_FLAG_ALI_CHAOS)) change_your_alignment(ALI_LNC, 10);
@@ -761,6 +789,7 @@ void check_quest_completion(monster_type *m_ptr)
 						}
 						else if (i == QUEST_BARMAMUTHA_C)
 							msg_print("あなたは敵を全滅させた。");
+						announce_party_recruitment(i);
 						msg_print(NULL);
 
 						/* Force change to wild mode */
@@ -811,6 +840,7 @@ void check_quest_completion(monster_type *m_ptr)
 						msg_print("You just completed your quest!");
 #endif
 
+						announce_party_recruitment(i);
 						msg_print(NULL);
 					}
 
@@ -871,6 +901,7 @@ void check_quest_completion(monster_type *m_ptr)
 						msg_print("You just completed your quest!");
 #endif
 
+						announce_party_recruitment(i);
 						msg_print(NULL);
 					}
 					quest[i].cur_num = 0;
@@ -1874,26 +1905,6 @@ void monster_death(int m_idx, bool drop_item, bool is_stoned)
 				chance = 50;
 				break;
 
-			case MON_FELLANA:
-				a_idx = ART_OGRE_SHIELD;
-				chance = 100;
-				break;
-
-			case MON_HOLP:
-				a_idx = ART_OGRE_HELM;
-				chance = 100;
-				break;
-
-			case MON_ISHTALLE:
-				a_idx = ART_OGRE_BLADE;
-				chance = 100;
-				break;
-
-			case MON_FILARHH:
-				a_idx = ART_OGRE_ARMOR;
-				chance = 100;
-				break;
-
 			case MON_DIVINE_DRAGON:
 				a_idx = ART_FIRECREST;
 				chance = 100;
@@ -1994,6 +2005,26 @@ void monster_death(int m_idx, bool drop_item, bool is_stoned)
 		}
 	}
 
+    /* Ogre equipment is exclusive to genuine, non-pet Ogre kills. */
+    if (drop_item && !cloned && !is_pet(m_ptr) && !p_ptr->inside_arena &&
+        r_ptr->d_char == 'O' && r_ptr->level >= 60)
+    {
+        static const int ogre_arts[] = {
+            ART_OGRE_HELM, ART_OGRE_ARMOR, ART_OGRE_SHIELD, ART_OGRE_BLADE
+        };
+        for (i = 0; i < 4; i++)
+        {
+            artifact_type *a_ptr = &a_info[ogre_arts[i]];
+            if (a_ptr->cur_num || !a_ptr->rarity || !one_in_(a_ptr->rarity)) continue;
+            if (create_named_art(ogre_arts[i], y, x))
+            {
+                a_ptr->cur_num = 1;
+                if (character_dungeon) a_ptr->floor_id = p_ptr->floor_id;
+            }
+            else if (!preserve_mode) a_ptr->cur_num = 1;
+        }
+    }
+
 	/* Determine how much we can drop */
 	if ((r_ptr->flags1 & RF1_DROP_60) && (randint0(100) < 60)) number++;
 	if ((r_ptr->flags1 & RF1_DROP_90) && (randint0(100) < 90)) number++;
@@ -2078,9 +2109,9 @@ void monster_death(int m_idx, bool drop_item, bool is_stoned)
 		p_ptr->redraw |= (PR_TITLE);
 
 #ifdef JP
-		do_cmd_write_nikki(NIKKI_BUNSHOU, 0, "見事にTOband2の勝利者となった！");
+		do_cmd_write_nikki(NIKKI_BUNSHOU, 0, "見事にTOband-R3の勝利者となった！");
 #else
-		do_cmd_write_nikki(NIKKI_BUNSHOU, 0, "become *WINNER* of TOband2 finely!");
+		do_cmd_write_nikki(NIKKI_BUNSHOU, 0, "become *WINNER* of TOband-R3 finely!");
 #endif
 
 		/* Congratulations */
@@ -2224,6 +2255,7 @@ static void expire_current_class(void)
 
 	switch (old_pclass)
 	{
+	case CLASS_TEMPLECOMMAND:
 	case CLASS_TEMPLEKNIGHT:
 		msg_print("ロスローリアン本隊から書状が届いた。");
 		msg_print("「貴公の度重なる国家への反逆を、これ以上許すわけにはいかん。ゆえに貴公の騎士資格を剥奪する。」");
@@ -2250,7 +2282,7 @@ static void expire_current_class(void)
 	p_ptr->s_ptr = &s_info[p_ptr->pclass];
 	cexp_ptr = &p_ptr->cexp_info[p_ptr->pclass];
 
-	if (old_pclass == CLASS_TEMPLEKNIGHT) change_level99_quest(FALSE);
+	if ((old_pclass == CLASS_TEMPLEKNIGHT || old_pclass == CLASS_TEMPLECOMMAND)) change_level99_quest(FALSE);
 
 	sprintf(buf, "%sの資格を剥奪され、%sになった。", c_name + class_info[old_pclass].name, c_name + cp_ptr->name);
 	msg_print(buf);
@@ -2375,6 +2407,9 @@ bool mon_take_hit(int m_idx, int dam, bool *fear, cptr note, bool is_stoned)
 	/* It is dead or stoned now */
 	if ((m_ptr->hp < 0) || is_stoned)
 	{
+        if (IS_RANDOM_UNIQUE(m_ptr->r_idx) && !(m_ptr->smart1 & SM1_CLONED) &&
+            random_unique_kills < 0x7fffffffUL) random_unique_kills++;
+
 		/* When the player kills a Unique, it stays dead */
 		if (r_ptr->flags1 & RF1_UNIQUE && !(m_ptr->smart1 & SM1_CLONED))
 			r_ptr->max_num = 0;
@@ -2543,7 +2578,7 @@ bool mon_take_hit(int m_idx, int dam, bool *fear, cptr note, bool is_stoned)
 
 		if (!p_ptr->inside_arena && !(m_ptr->smart1 & SM1_CLONED))
 		{
-			int kill_temple = (pclass_is_(CLASS_TEMPLEKNIGHT) && (r_ptr->flags3 & RF3_TEMPLE)) ? 2 : 1;
+			int kill_temple = ((pclass_is_(CLASS_TEMPLEKNIGHT) || pclass_is_(CLASS_TEMPLECOMMAND)) && (r_ptr->flags3 & RF3_TEMPLE)) ? 2 : 1;
 			int kill_zenobian_forces = (pclass_is_(CLASS_WHITEKNIGHT) && (r_ptr->flags7 & RF7_ZENOBIAN_FORCES)) ? 2 : 1;
 
 			/* Alignment change */
@@ -2677,7 +2712,7 @@ bool mon_take_hit(int m_idx, int dam, bool *fear, cptr note, bool is_stoned)
 					change_chaos_frame(ETHNICITY_BACRUM, -5);
 					change_chaos_frame(ETHNICITY_ZENOBIAN, 20);
 					change_chaos_frame(ETHNICITY_LODIS, -20 * kill_temple);
-					if (pclass_is_(CLASS_TEMPLEKNIGHT)) expire_current_class();
+					if ((pclass_is_(CLASS_TEMPLEKNIGHT) || pclass_is_(CLASS_TEMPLECOMMAND))) expire_current_class();
 					break;
 
 				case MON_BERSALIA:
@@ -2692,7 +2727,7 @@ bool mon_take_hit(int m_idx, int dam, bool *fear, cptr note, bool is_stoned)
 					change_chaos_frame(ETHNICITY_BACRUM, -10);
 					change_chaos_frame(ETHNICITY_ZENOBIAN, 40);
 					change_chaos_frame(ETHNICITY_LODIS, -40 * kill_temple);
-					if (pclass_is_(CLASS_TEMPLEKNIGHT)) expire_current_class();
+					if ((pclass_is_(CLASS_TEMPLEKNIGHT) || pclass_is_(CLASS_TEMPLECOMMAND))) expire_current_class();
 					break;
 
 				case MON_DOLGARUA:
@@ -2729,7 +2764,7 @@ bool mon_take_hit(int m_idx, int dam, bool *fear, cptr note, bool is_stoned)
 				if (r_ptr->flags2 & RF2_LODIS) change_chaos_frame(ETHNICITY_LODIS, -1 * kill_temple);
 			}
 
-			if (pclass_is_(CLASS_TEMPLEKNIGHT) && (r_ptr->flags7 & RF7_ZENOBIAN_FORCES))
+			if ((pclass_is_(CLASS_TEMPLEKNIGHT) || pclass_is_(CLASS_TEMPLECOMMAND)) && (r_ptr->flags7 & RF7_ZENOBIAN_FORCES))
 			{
 				change_chaos_frame(ETHNICITY_ZENOBIAN, -10);
 				change_chaos_frame(ETHNICITY_LODIS, 10);
@@ -3794,6 +3829,9 @@ static int target_set_aux(int y, int x, int mode, cptr info)
 	int tmp_len;
 
 	int floor_list[23], floor_num = 0;
+
+	/* Update before the next input, including monster/object inspection. */
+	display_floor_grid(y, x);
 
 	/* Scan all objects in the grid */
 	if (easy_floor)
@@ -4942,6 +4980,9 @@ bool target_set(int mode)
 			}
 		}
 	}
+
+	/* Restore the current floor on both target selection and cancellation. */
+	display_floor_grid(-1, -1);
 
 	/* Forget */
 	temp_n = 0;
@@ -6859,7 +6900,7 @@ void process_chaos_frame(int ethnic)
 	case ETHNICITY_LODIS:
 		if (!astral_mode)
 		{
-			if (pclass_is_(CLASS_TEMPLEKNIGHT))
+			if ((pclass_is_(CLASS_TEMPLEKNIGHT) || pclass_is_(CLASS_TEMPLECOMMAND)))
 			{
 				if (chaos_frame[ethnic] < 0) expire_current_class();
 			}
@@ -7072,6 +7113,8 @@ void change_grid_elem(cave_type *c_ptr, s16b elem, s16b amount)
 	else if (tmp_elem_val > 99) tmp_elem_val = 99;
 
 	c_ptr->elem[elem] = tmp_elem_val;
+	if (in_bounds2(py, px) && c_ptr == &cave[py][px])
+		p_ptr->redraw |= PR_FLOOR;
 
 	return;
 }
@@ -7408,6 +7451,26 @@ s16b choose_elem(void)
 /*
  * Is this class is choosable?
  */
+static bool class_change_item_equipped(int new_class)
+{
+	int slot, flag;
+	u32b flgs[TR_FLAG_SIZE];
+	switch (new_class)
+	{
+	case CLASS_HIGHWITCH: flag = TR_CLASS_HIGHWITCH; break;
+	case CLASS_RELICSKNIGHT: flag = TR_CLASS_RELICSKNIGHT; break;
+	default: return TRUE;
+	}
+	for (slot = INVEN_RARM; slot < INVEN_TOTAL; slot++)
+	{
+		if (!inventory[slot].k_idx) continue;
+		object_flags(&inventory[slot], flgs);
+		if (have_flag(flgs, flag)) return TRUE;
+	}
+	return FALSE;
+}
+
+
 bool can_choose_class(byte new_class, byte mode)
 {
 	player_class *new_cp_ptr = &class_info[new_class];
@@ -7417,6 +7480,18 @@ bool can_choose_class(byte new_class, byte mode)
 	{
 		if (p_ptr->cexp_info[i].max_clev > 0) total_max_clev += p_ptr->cexp_info[i].max_clev;
 	}
+
+    if (new_class == CLASS_TEMPLECOMMAND)
+        return mode == CLASS_CHOOSE_MODE_NORMAL && temple_command_eligible() &&
+            party_can_enter_class(new_class);
+
+    /* The altar consumes both companions before the terminal-class check applies. */
+    if (new_class == CLASS_DARK_ELEMENT)
+        return mode == CLASS_CHOOSE_MODE_BLDGS && party_can_dark_contract();
+
+	if (mode != CLASS_CHOOSE_MODE_BIRTH && !party_can_enter_class(new_class)) return FALSE;
+	if (mode != CLASS_CHOOSE_MODE_BIRTH && !class_change_item_equipped(new_class)) return FALSE;
+
 
 	/* Gender restriction */
 	switch (p_ptr->psex)
@@ -7518,12 +7593,11 @@ bool can_choose_class(byte new_class, byte mode)
 			if (chaos_frame[ETHNICITY_LODIS] > -50) return FALSE;
 			break;
 		case CLASS_RELICSKNIGHT:
-			if (!prace_is_(RACE_GOBLIN)) return FALSE;
+			if (party_count != 3 || party_has_successor()) return FALSE;
 			if (get_your_alignment_gne() != ALIGN_GNE_EVIL) return FALSE;
 			break;
 		case CLASS_ENIGMAHUNTER:
 			if (p_ptr->cexp_info[CLASS_AMAZONESS].clev < 35) return FALSE;
-			if (!(inventory[INVEN_NECK].k_idx && (inventory[INVEN_NECK].name1 == ART_SILVER_CROSS))) return FALSE;
 			if (get_your_alignment_gne() != ALIGN_GNE_GOOD) return FALSE;
 			break;
 		}
@@ -7579,11 +7653,9 @@ bool can_choose_class(byte new_class, byte mode)
 		break;
 
 	case CLASS_CHOOSE_MODE_BLDGS:
-		/* Reincarnated classes are no more reincarnated */
-		if (cp_ptr->c_flags & PCF_REINCARNATE) return FALSE;
-
-		/* Several classes cannot change more */
-		if (cp_ptr->c_flags & PCF_NO_CHANGE) return FALSE;
+		/* The demonic contract is also available from terminal classes. */
+		if (new_class != CLASS_SUCCUBUS &&
+		    (cp_ptr->c_flags & (PCF_REINCARNATE | PCF_NO_CHANGE))) return FALSE;
 
 		switch (new_class)
 		{
@@ -7608,7 +7680,7 @@ bool can_choose_class(byte new_class, byte mode)
 			break;
 
 		case CLASS_SUCCUBUS:
-			if (!pclass_is_(CLASS_WITCH)) return FALSE;
+			if (!pclass_is_(CLASS_WITCH) && !(cp_ptr->c_flags & PCF_NO_CHANGE)) return FALSE;
 			if (rp_ptr->r_flags & PRF_UNDEAD) return FALSE;
 			break;
 		}

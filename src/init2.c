@@ -1896,7 +1896,7 @@ static errr init_other(void)
 	/*** Pre-allocate space for the "format()" buffer ***/
 
 	/* Hack -- Just call the "format()" function */
-	(void)format("%s (%s).", "TOband2", MAINTAINER);
+	(void)format("%s (%s).", "TOband-R3", MAINTAINER);
 
 
 	/* Success */
@@ -2355,6 +2355,7 @@ void init_angband(void)
 	note("[Initializing arrays... (monsters)]");
 	if (init_r_info()) quit("Cannot initialize monsters");
 #endif
+	random_unique_reset();
 
 
 	/* Initialize monster info */
