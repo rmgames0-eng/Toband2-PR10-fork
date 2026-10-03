@@ -18334,6 +18334,7 @@ F:NO_FEAR | NO_CONF | NO_SLEEP |
 F:ONLY_ITEM | DROP_1D2 | DROP_2D2 | DROP_3D2 | DROP_4D2 | DROP_GOOD | DROP_GREAT
 S:1_IN_4 | SPECIAL | BA_NETH | BA_MANA | BA_DARK | BRAIN_SMASH | BO_MANA | DISPEL |
 S:S_MONSTERS | S_KIN | S_HI_DRAGON | S_UNIQUE | BA_FIRE | BA_COLD | DARK_FIRE
+S:BR_CHAO | CHANGE_ELEM | SHIFT_ELEM
 D:$The dark god who led the ogre armies against the gods, sealed in Sharia and awakened by Rashidi.
 D:オウガバトルでオウガの軍勢を率いて神々と戦った暗黒の神。敗れて魔宮シャリーアに封印されたが、賢者ラシュディの魔力で呼び覚まされ、地上の者に暗黒神への讃美歌を要求している。
 
@@ -18385,7 +18386,7 @@ W:127:1:0:350000:0:0
 B:HIT:HELL:25d15
 B:HIT:UN_BONUS:25d15
 B:HIT:SHATTER:25d15
-B:HIT:FIRE:50d50
+B:HIT:SHATTER:20d20
 F:UNIQUE | MALE | CAN_SPEAK | FORCE_SLEEP | FORCE_MAXHP | FORCE_DEPTH |
 F:SMART | POWERFUL | REGENERATE | KILL_WALL | MOVE_BODY | CAN_FLY |
 F:OPEN_DOOR | BASH_DOOR | EVIL | DEMON | CHAOTIC | AURA_COLD | AURA_FIRE |
@@ -18396,6 +18397,7 @@ F:NO_STUN | NO_FEAR | NO_CONF | NO_SLEEP |
 F:ONLY_ITEM | DROP_2D2 | DROP_3D2 | DROP_4D2 | DROP_GOOD | DROP_GREAT
 S:1_IN_4 | TELE_TO | HASTE | DISPEL | DARK_FIRE | BR_DISI
 S:S_KIN | S_HI_DRAGON | S_HI_DEMON | S_HI_UNDEAD
+S:BR_CHAO | CHANGE_ELEM | SHIFT_ELEM
 D:$The ruler of the underworld and the demon realm, and elder brother of Filarhh, lord of heaven.
 D:冥界と魔界の２つの世界を統べる、天界の主フィラーハの兄。
 
