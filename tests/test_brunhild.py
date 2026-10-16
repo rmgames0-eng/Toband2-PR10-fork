@@ -40,7 +40,11 @@ static void brunhild_tests(void)
     assert(quest[QUEST_BRUNHILD].k_idx==ART_BRUNHILD);
     assert(!(a_info[ART_BRUNHILD].gen_flags & TRG_QUESTITEM));
     assert(r_info[992].level==80 && (r_info[992].flags1 & RF1_UNIQUE));
-    assert(!memcmp(r_info[992].blow,r_info[MON_LANCELOT].blow,sizeof(r_info[992].blow)));
+    for(i=0;i<4;i++) {
+        assert(r_info[992].blow[i].method==RBM_SLASH);
+        assert(r_info[992].blow[i].effect==RBE_SUPERHURT);
+        assert(r_info[992].blow[i].d_dice==20 && r_info[992].blow[i].d_side==15);
+    }
     assert(r_info[992].speed==r_info[MON_LANCELOT].speed);
     assert(r_info[992].d_char=='p' && r_info[992].d_attr==TERM_WHITE);
     p_ptr->inside_quest=0;init_flags=0;
