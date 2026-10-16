@@ -5,8 +5,8 @@
 # Source: https://github.com/NetHack/NetHack/blob/NetHack-3.6/dat/castle.des
 Q:$64:N:Theft of Brunhild
 Q:64:N:ブリュンヒルド強奪
-Q:$64:Q:3:0:0:0:95:0:92:0:230
-Q:64:Q:3:0:0:0:95:0:92:0:230
+Q:$64:Q:3:0:0:0:95:0:92:0:238
+Q:64:Q:3:0:0:0:95:0:92:0:238
 ?:[LEQ $QUEST64 2]
 Q:$64:T:Search the four corner treasuries for Brunhild. The commander patrols separately.
 Q:$64:T:The entire castle blocks teleportation. Stealing the sword triggers the alarm.

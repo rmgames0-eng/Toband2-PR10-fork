@@ -18428,7 +18428,7 @@ F:UNIQUE | UNIQUE2 | FORCE_MAXHP
 F:AQUATIC | CAN_SWIM
 
 # Quest-only guardian of Brunhild (melee matches the Dark Knight).
-N:992:ゼノビア聖騎士団長『ランスロット』
+N:992:聖騎士『ランスロット』
 E:Lancelot, Commander of the Zenobian Holy Knights
 G:p:w
 I:145:120d100:100:165:0

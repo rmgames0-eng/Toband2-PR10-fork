@@ -838,7 +838,7 @@ bool recall_player(int turns)
 	 */
 
 	/* Ironman option */
-	if (p_ptr->inside_arena || astral_mode ||
+	if (p_ptr->inside_arena || astral_mode || p_ptr->inside_quest == QUEST_BRUNHILD ||
 	    ((d_info[dungeon_type].flags1 & DF1_CLOSED) && (dungeon_type != DUNGEON_HEAVEN) && (dungeon_type != DUNGEON_DEMON)) ||
 		(p_ptr->inside_quest && (quest[p_ptr->inside_quest].flags & QUEST_FLAG_NO_RECALL)))
 	{

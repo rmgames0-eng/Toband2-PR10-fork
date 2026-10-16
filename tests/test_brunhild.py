@@ -9,6 +9,7 @@ GCC=ROOT/'tools/mingw32/bin/gcc.exe'
 FLAGS=['-std=gnu89','-O2','-DWIN32','-DJP','-DSJIS','-finput-charset=EUC-JP','-fexec-charset=CP932','-I',str(ROOT/'src')]
 EXTRA=r"""
 extern void brun_test_castle(void);
+extern void brun_test_movement(void);
 extern bool brun_test_make(object_type *o);
 static void brunhild_tests(void)
 {
@@ -27,12 +28,21 @@ static void brunhild_tests(void)
     init_flags=INIT_ASSIGN;
     assert(!process_dungeon_file("q_info.txt",0,0,0,0));
     assert(quest[QUEST_BRUNHILD].level==95);
+    assert(quest[QUEST_BRUNHILD].flags & QUEST_FLAG_NO_RECALL);
+    /* Old saves can still contain the previous quest flags. */
+    quest[QUEST_BRUNHILD].flags &= ~QUEST_FLAG_NO_RECALL;
+    p_ptr->word_recall=0;assert(recall_player(15));assert(!p_ptr->word_recall);
+    p_ptr->word_recall=1;p_ptr->leaving=FALSE;
+    brun_test_movement();assert(!p_ptr->word_recall && !p_ptr->leaving);
+    quest[QUEST_BRUNHILD].flags |= QUEST_FLAG_NO_RECALL;
+    puts("Brunhild: recall blocked and pending recall cancelled with legacy flags");
     assert(quest[QUEST_BRUNHILD].type==QUEST_TYPE_FIND_ARTIFACT);
     assert(quest[QUEST_BRUNHILD].k_idx==ART_BRUNHILD);
     assert(!(a_info[ART_BRUNHILD].gen_flags & TRG_QUESTITEM));
     assert(r_info[992].level==80 && (r_info[992].flags1 & RF1_UNIQUE));
     assert(!memcmp(r_info[992].blow,r_info[MON_LANCELOT].blow,sizeof(r_info[992].blow)));
     assert(r_info[992].speed==r_info[MON_LANCELOT].speed);
+    assert(r_info[992].d_char=='p' && r_info[992].d_attr==TERM_WHITE);
     p_ptr->inside_quest=0;init_flags=0;
     assert(!place_monster_aux(0,2,2,992,0));
     py=px=1;cave[py][px].special=QUEST_BRUNHILD;
@@ -185,8 +195,8 @@ with tempfile.TemporaryDirectory(prefix='toband-brunhild-') as d:
         (tmp/'lib/edit'/f.name).write_bytes(f.read_bytes().decode('euc_jp').encode('cp932'))
     (tmp/'lib/save').mkdir(exist_ok=True)
     (tmp/'test.c').write_bytes(h.encode('euc_jp'))
-    objects=[p for p in BUILD.glob('*.o') if p.stem not in ('main-win','angband','bldg','object2')]
-    for name,wrapper in [('bldg','void brun_test_castle(void) { castle_quest(); }'),('object2','bool brun_test_make(object_type *o) { return make_artifact(o); }')]:
+    objects=[p for p in BUILD.glob('*.o') if p.stem not in ('main-win','angband','bldg','object2','dungeon')]
+    for name,wrapper in [('dungeon','void brun_test_movement(void) { process_world_aux_movement(); }'),('bldg','void brun_test_castle(void) { castle_quest(); }'),('object2','bool brun_test_make(object_type *o) { return make_artifact(o); }')]:
         source=tmp/(name+'.c');obj=tmp/(name+'.o')
         source.write_bytes((ROOT/'src'/(name+'.c')).read_bytes()+('\n'+wrapper+'\n').encode('ascii'))
         subprocess.run([str(GCC),*FLAGS,'-c',str(source),'-o',str(obj)],check=True)

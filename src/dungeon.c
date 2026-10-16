@@ -2562,6 +2562,13 @@ static void process_world_aux_movement(void)
 {
 	/*** Involuntary Movement ***/
 
+    /* Cancel pending recall inside the theft quest, including older saves. */
+    if (p_ptr->inside_quest == QUEST_BRUNHILD && p_ptr->word_recall)
+    {
+        p_ptr->word_recall = 0;
+        p_ptr->redraw |= PR_STATUS;
+    }
+
 	/* Delayed Word-of-Recall */
 	if (p_ptr->word_recall)
 	{
