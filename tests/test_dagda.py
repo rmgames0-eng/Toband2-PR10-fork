@@ -6,7 +6,7 @@ BUILD=ROOT/'build/party'
 GCC=ROOT/'tools/mingw32/bin/gcc.exe'
 FLAGS=['-std=gnu89','-O2','-DWIN32','-DJP','-DSJIS','-finput-charset=EUC-JP','-fexec-charset=CP932','-I',str(ROOT/'src')]
 h=(ROOT/'tests/party_integration.c').read_text(encoding='euc_jp')
-marker='    death_regressions();'
+marker='    display_regressions();'
 assert marker in h
 h=h.replace(marker,r"""
     {
@@ -41,7 +41,7 @@ h=h.replace(marker,r"""
         wipe_m_list(); *p_ptr=saved; easy_band=old_easy;
         puts("Brainstorm: mana-equivalent damage and confusion bypass for player and monster passed");
     }
-    death_regressions();
+    return 0;
 """,1)
 # Both caster paths must use the same mana-storm formula and radius.
 for n in (1,2):

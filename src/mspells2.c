@@ -3364,7 +3364,7 @@ bool monst_spell_monst(int m_idx, bool target_is_decoy)
 				cave_type *c_ptr = &cave[y][x];
 
 				/* if (p_ptr->inside_arena) return FALSE; */
-				switch (m_ptr->r_idx)
+				switch (choose_dark_god_special(m_ptr->r_idx, FALSE))
 				{
 				case MON_ASMODE:
                 if (known && see_either)

@@ -177,3 +177,7 @@
 
 ?:[EQU $QUEST_NUMBER 63]
 %:q_heaven.txt
+
+# Theft of Brunhild
+?:[EQU $QUEST_NUMBER 64]
+%:q_brunhild.txt

@@ -148,6 +148,7 @@
 #define QUEST_HOLP          61
 #define QUEST_ISHTALLE      62
 #define QUEST_FILARHH       63
+#define QUEST_BRUNHILD      64
 
 /*
  * Arena constants
@@ -1207,6 +1208,10 @@
 #define ART_FIREDRAKE_SWORD      90
 #define ART_DOOMCALLER           91
 #define ART_BRUNHILD             92
+
+/* Reserve Brunhild only while the theft quest is active. */
+#define artifact_is_reserved(A_IDX) \
+    ((A_IDX) == ART_BRUNHILD && quest[QUEST_BRUNHILD].status == QUEST_STATUS_TAKEN)
 #define ART_NEPHRITE             123
 #define ART_EXCALIBUR            133
 #define ART_ZANZIBAR             136
@@ -4765,6 +4770,11 @@ extern int PlayerUID;
 #define MON_RANDOM_UNIQUE_1 989
 #define MON_RANDOM_UNIQUE_2 990
 #define MON_RANDOM_UNIQUE_3 991
+#define MON_ZENOBIA_LANCELOT 992
+/* Hamilton's two forms share defeat state, including legacy saves. */
+#define hamilton_form_is_defeated(R_IDX) \
+    (((R_IDX) == MON_MAN_LOOK_SEA || (R_IDX) == MON_ZENOBIA_LANCELOT) && \
+     (!r_info[MON_MAN_LOOK_SEA].max_num || !r_info[MON_ZENOBIA_LANCELOT].max_num))
 #define RANDOM_UNIQUE_NAME_SIZE 128
 #define IS_RANDOM_UNIQUE(i) ((i) >= MON_RANDOM_UNIQUE_1 && (i) <= MON_RANDOM_UNIQUE_3)
 

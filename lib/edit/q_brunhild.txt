@@ -1,0 +1,143 @@
+# Quest 64: subdivided NetHack castle.
+# Based on NetHack 3.6 dat/castle.des, Copyright (c) 1989 Jean-Christophe Collet.
+# Modified for TOband: internal partitions, defenders, treasure and quest rules.
+# NetHack General Public License: lib/file/nethack-license.txt
+# Source: https://github.com/NetHack/NetHack/blob/NetHack-3.6/dat/castle.des
+Q:$64:N:Theft of Brunhild
+Q:64:N:¥Ö¥ê¥å¥ó¥Ò¥ë¥É¶¯Ã¥
+Q:$64:Q:3:0:0:0:95:0:92:0:230
+Q:64:Q:3:0:0:0:95:0:92:0:230
+?:[LEQ $QUEST64 2]
+Q:$64:T:Search the four corner treasuries for Brunhild. The commander patrols separately.
+Q:$64:T:The entire castle blocks teleportation. Stealing the sword triggers the alarm.
+Q:64:T:¥í¡¼¥Ç¥£¥¹ËÜ¹ñ¤«¤é¤Î¶ËÈëÇ¤Ì³¤Ç¤¢¤ë¡£
+Q:64:T:¥¼¥Î¥Ó¥¢¤Î»êÊõ¤Ç¤¢¤ëÀ»·õ¥Ö¥ê¥å¥ó¥Ò¥ë¥É¤ò¶¯Ã¥¤»¤è¡£
+Q:64:T:·ÙÈ÷¤Ï¸·½Å¤ò¶Ë¤á¤ë¤¬¡¢ÀäÂÐ¤ÎÃ£À®¤òµá¤á¤é¤ì¤ëÇ¤Ì³¤À¡£
+?:1
+?:[EQU $QUEST64 3]
+Q:$64:T:Mission accomplished. Keep Brunhild as your reward.
+Q:64:T:¤è¤¯¤ä¤Ã¤¿¡£
+Q:64:T:À»·õ¤ÏÍè¤¿¤ë¤Ù¤­¤ËÈ÷¤¨¡¢µ®ÍÍ¤¬ÊÝ´É¤»¤è¡£ÀäÂÐ¤Ë¼º¤Ã¤Æ¤Ï¤Ê¤é¤Ì¡£
+?:1
+?:[EQU $QUEST64 5]
+Q:$64:T:You failed to seize Brunhild.
+Q:64:T:µ®ÍÍ¤Ë¤Ï¼ºË¾¤·¤¿¡£
+Q:64:T:²æ¤é¤Ï¶µ¹Ä¤Ë¸«Êü¤µ¤ì¤¿¡£»à¤è¤ê¶²¤í¤·¤¤È³¤¬ÂÔ¤Á¼õ¤±¤Æ¤¤¤ë¤À¤í¤¦¡£
+?:1
+# Castle grids are all vault grids; explicit teleport guards also cover forced teleportation.
+F:X:61:12
+F:.:1:12
+F:D:32:12
+F:+:38:12
+F:W:83:12
+F:<:6:12
+F:$:1:12:0:564
+F:g:1:12:0:568
+F:c:1:12:0:18
+F:h:1:12:0:495
+F:u:1:12:0:497
+F:v:1:12:0:486
+F:j:1:12:0:*:0:0:0:0:2
+F:b:1:12:716
+F:p:1:12:225
+F:i:1:12:240
+F:t:1:12:287
+F:s:1:12:293
+F:d:1:12:372
+F:r:1:12:636
+F:n:1:12:737
+F:l:1:12:518
+F:m:1:12:658
+F:f:1:12:805
+F:k:1:12:699
+F:w:1:12:772
+# The unselected corners hold Brunhild's ordinary base weapon, as in The Vault.
+F:A:1:12:0:112
+F:B:1:12:0:112
+F:C:1:12:0:112
+F:E:1:12:0:112
+F:L:1:12
+F:M:1:12
+F:N:1:12
+F:O:1:12
+?:[EQU $RANDOM4 0]
+F:A:1:12:0:0:0:92
+?:1
+?:[EQU $RANDOM4 1]
+F:B:1:12:0:0:0:92
+?:1
+?:[EQU $RANDOM4 2]
+F:C:1:12:0:0:0:92
+?:1
+?:[EQU $RANDOM4 3]
+F:E:1:12:0:0:0:92
+?:1
+?:[EQU $BRUNHILD_GUARD 0]
+F:L:1:12:992
+?:1
+?:[EQU $BRUNHILD_GUARD 1]
+F:M:1:12:992
+?:1
+?:[EQU $BRUNHILD_GUARD 2]
+F:N:1:12:992
+?:1
+?:[EQU $BRUNHILD_GUARD 3]
+F:O:1:12:992
+?:1
+
+F:~:84:12
+F:^:1:12
+
+# Room plan: original castle subdivided internally.
+# ËÌÀ¾Åã¤Î¹ñ¸Ë [3, 3, 4, 7] {'k': 3} supplies=cg$
+# ËÌÅìÅã¤ÎÊõÀÐ¸Ë [3, 57, 4, 61] {'k': 3} supplies=cg$
+# ÆîÀ¾Åã¤ÎÉð¶ñ¸Ë [14, 3, 15, 7] {'k': 3} supplies=cg$
+# ÆîÅìÅã¤ÎÀ»°äÊª¸Ë [14, 57, 15, 61] {'k': 3} supplies=cg$
+# ËÌÀ¾Ê¼¼Ë¡¦¶¸Àï»ÎµÍ½ê [6, 17, 7, 20] {'k': 2, 's': 5} supplies=j
+# ËÌÅìÊ¼¼Ë¡¦Îµµ³»ÎµÍ½ê [6, 22, 7, 26] {'k': 3, 'd': 5} supplies=jj
+# ËÌÀ¾ÎéÇÒ¼¼ [6, 8, 7, 11] {'k': 2, 'p': 5} supplies=h
+# ËÌÅìÎÅÍÜ¼¼ [6, 13, 7, 15] {'p': 5} supplies=h
+# ËÌ»àÎî½Ñ¤Î¸¦µæ¼¼ [6, 40, 7, 42] {'k': 1, 'n': 2, 'l': 1} supplies=uc
+# ËÌ¶Ø¼ö¤Î½ñ¸Ë [6, 44, 7, 46] {'k': 1, 'm': 2, 'l': 1} supplies=uc
+# ÆîÀ¾Ê¼¼Ë¡¦¶¸Àï»ÎµÍ½ê [11, 17, 12, 20] {'k': 2, 's': 5} supplies=j
+# ÆîÅìÊ¼¼Ë¡¦Îµµ³»ÎµÍ½ê [11, 22, 12, 26] {'k': 3, 'd': 5} supplies=jj
+# ÆîÀ¾ÎéÇÒ¼¼ [11, 8, 12, 11] {'k': 2, 'p': 5} supplies=h
+# ÆîÅìÎÅÍÜ¼¼ [11, 13, 12, 15] {'p': 5} supplies=h
+# Æî»àÎî½Ñ¤Î¸¦µæ¼¼ [11, 40, 12, 42] {'k': 1, 'n': 2, 'l': 1} supplies=uc
+# Æî¶Ø¼ö¤Î½ñ¸Ë [11, 44, 12, 46] {'k': 1, 'm': 2, 'l': 1} supplies=uc
+# Ëâ½÷¤ÎÄ´¹ç¼¼ [6, 50, 7, 52] {'i': 5} supplies=u
+# Ëâ½÷¤ÎËâÎÏÀºÀ½¼¼ [6, 54, 7, 56] {'i': 5} supplies=u
+# Îµ¤Î»ô°é¼¼ [11, 50, 12, 52] {'r': 5} supplies=g
+# Îµ¤ÎÕÛ²½¼¼ [11, 54, 12, 56] {'r': 5} supplies=g
+# ËÌÎµÌç¤ÎÈÖÎµ [6, 48, 7, 48] {'k': 1, 'f': 1} supplies=
+# ÆîÎµÌç¤ÎÈÖÎµ [11, 48, 12, 48] {'k': 1, 'f': 1} supplies=
+# Âç¹­´ÖËÌÀ¾¤Î½Ã¼Ë [6, 28, 7, 31] {'b': 2, 't': 5} supplies=h
+# Âç¹­´ÖÆîÀ¾¤Î½Ã¼Ë [11, 28, 12, 31] {'b': 2, 't': 5} supplies=h
+# Âç¹­´ÖËÌÅì¤ÎÀêÀ±½Ñ¼¼ [6, 35, 7, 38] {'k': 5, 'w': 1} supplies=uj
+# Âç¹­´ÖÆîÅì¤ÎÃÄËÜÉô [11, 35, 12, 38] {'k': 6} supplies=jc
+# ËÌ¤Î³°¼þ·ÙÈ÷²óÏ­ [4, 9, 4, 55] {'k': 23} supplies=jg$jg$
+# Æî¤Î³°¼þ·ÙÈ÷²óÏ­ [14, 9, 14, 55] {'k': 23} supplies=jg$jg$
+# ÀµÌÌ¤ÎÉð´ï±¿ÈÂÄÌÏ© [9, 17, 9, 26] {'k': 5} supplies=hjv
+# ±ü¤ÎºâÊõ±¿ÈÂÄÌÏ© [9, 40, 9, 56] {'k': 6} supplies=cg$jh
+
+D:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+D:XWWWWWWWWW.............................................WWWWWWWWWX
+D:XWXXXXXXXWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWXXXXXXXWX
+D:XWXkkAk.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXkkBk.XWX
+D:XWX.$gLcDk.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k$kgkjk$kgjD.$gMcXWX
+D:XWXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXDXXXXXXXXXXXXXXXXXXXXXXXXXXXXXWX
+D:XWWWWWWXkkhpXhppXkkjsXkkkjjDhtttX.XkkkkXkcuXkcuDkDuiiXuiiXWWWWWWX
+D:X.....WXppppXpppXssssDdddddXttbbX.XkjuwXlnnDlmmXfXiiiDiiiXW.....X
+D:X.....WXXXDXXXDXXXXXXXXXXXXXXXDXXDXXDXXXXXXXXXXXDXXXXXXXXXW.....X
+D:X..<..DD...~....Dk.k.kvkjkhD.........^cDk..k..k..khjk$gkcD......X
+D:X.....WXXXDXXXDXXXXXXXXXXXXXXXDXXDXXDXXXXXXXXXXXDXXXXXXXXXW.....X
+D:X.....WXkkhpXhppXkkjsXkkkjjXhtttX.XkkkkXkcuXkcuXkXgrrXgrrXW.....X
+D:XWWWWWWXppppXpppXssssDdddddDttbbX.XkkcjXlnnDlmmDfDrrrDrrrXWWWWWWX
+D:XWXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXDXXXXXXXXXXXXXXXXXXXXXXXXXXXXXWX
+D:XWXkkkN.Dk.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k.k$kgkjk$kgjDkkkO.XWX
+D:XWX.$CgcXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX.$EgcXWX
+D:XWXXXXXXXWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWXXXXXXXWX
+D:XWWWWWWWWW.............................................WWWWWWWWWX
+D:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+P:9:3

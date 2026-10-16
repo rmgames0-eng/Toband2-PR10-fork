@@ -39,6 +39,8 @@ bool teleport_away(int m_idx, int dis)
 	monster_type *m_ptr = &m_list[m_idx];
 
 
+    if (p_ptr->inside_quest == QUEST_BRUNHILD) return FALSE;
+
 	/* Paranoia */
 	if (!m_ptr->r_idx) return (FALSE);
 
@@ -149,6 +151,8 @@ void teleport_to(int m_idx, int ty, int tx, int dis, int power, bool avoid_fall)
 	cave_type    *c_ptr;
 	monster_type *m_ptr = &m_list[m_idx];
 
+
+    if (p_ptr->inside_quest == QUEST_BRUNHILD) return;
 
 	/* Paranoia */
 	if (!m_ptr->r_idx) return;
@@ -280,7 +284,7 @@ void teleport_player(int dis)
 
 	if (p_ptr->wild_mode) return;
 
-	if (p_ptr->anti_tele)
+	if (p_ptr->anti_tele || p_ptr->inside_quest == QUEST_BRUNHILD)
 	{
 #ifdef JP
 		msg_print("不思議な力がテレポートを防いだ！");
@@ -429,7 +433,7 @@ void teleport_player_to(int ny, int nx, bool no_tele, bool avoid_fall)
 	int y, x, oy, ox, dis = 0, ctr = 0;
 	cave_type *c_ptr;
 
-	if (p_ptr->anti_tele && no_tele)
+	if (p_ptr->inside_quest == QUEST_BRUNHILD || (p_ptr->anti_tele && no_tele))
 	{
 #ifdef JP
 		msg_print("不思議な力がテレポートを防いだ！");
@@ -7602,7 +7606,7 @@ bool wish_object(cptr err_msg)
 		/* Skip "empty" artifacts */
 		if (!a_ptr->name) continue;
 
-		if (a_ptr->gen_flags & TRG_QUESTITEM) continue;
+		if ((a_ptr->gen_flags & TRG_QUESTITEM) || artifact_is_reserved(i)) continue;
 
 		/* Obtain the base object type */
 		z = lookup_kind(a_ptr->tval, a_ptr->sval);

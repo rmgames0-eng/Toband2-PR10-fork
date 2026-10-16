@@ -1,22 +1,22 @@
 # TOband2-PR10 ビルド環境
 
-導入先: H:\temp\TOband2-PR10\tools\mingw32
+導入先: H:\Codex\TOband2-PR10-release\tools\mingw32
 コンパイラ: WinLibs GCC 14.2.0 / MinGW-w64 12.0.0、i686、MSVCRT
 Python: このPCに導入済みの Python 3.10 を使用。
 
 ## 再ビルド
-H:\temp\TOband2-PR10\build-mingw.cmd をダブルクリック。
+H:\Codex\TOband2-PR10-release\build-mingw.cmd をダブルクリック。
 または PowerShell で次を実行:
 
-    python H:\temp\TOband2-PR10\build-mingw.py
+    python H:\Codex\TOband2-PR10-release\build-mingw.py
 
 ## 実行ファイル
-H:\temp\TOband2-PR10\build\mingw\TOband.exe
+H:\Codex\TOband2-PR10-release\build\party\TOband.exe
 同じディレクトリに実行用の lib データも配置済み。
 
 元のソースと lib は保持。ソースのEUC-JPを読み、文字列をCP932で生成。
 メニューリソースはUTF-8経由でコンパイル。実行用テキストデータはCP932へ変換。
-既存の実行用データは再ビルド時に上書きしない（セーブや設定を保持するため）。
+通常のビルドは常に build/party を更新する。ゲーム定義・付属データを同期し、定義変更時は生成キャッシュを削除する。既存のセーブ・個人設定は保持する。
 
 全Cファイルのコンパイル、リソース生成、リンクに成功。
 実行ファイルは32bit Windows GUI形式。依存DLLはWindows標準DLLのみ。
@@ -36,7 +36,7 @@ https://github.com/brechtsanders/winlibs_mingw/releases/tag/14.2.0posix-19.1.7-1
 3. 公開SHA256と照合してから、リポジトリ直下の tools に展開する。
    tools/mingw32/bin/gcc.exe が存在する配置にする。
 4. リポジトリ直下で python build-mingw.py を実行する。
-5. build/mingw/TOband.exe を起動する。
+5. build/party/TOband.exe を起動する。
 
 本文の H: で始まるパスは元の作業PCの例。別の場所へcloneしてもビルドスクリプトはその配置場所を自動認識する。
 tools と build はGit管理対象外。

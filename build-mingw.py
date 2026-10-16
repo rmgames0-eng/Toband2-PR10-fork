@@ -3,7 +3,7 @@ import argparse, re, subprocess
 root = Path(__file__).resolve().parent
 bin = root / 'tools/mingw32/bin'
 parser = argparse.ArgumentParser()
-parser.add_argument('--build-dir', type=Path, default=root / 'build/mingw')
+parser.add_argument('--build-dir', type=Path, default=root / 'build/party')
 args = parser.parse_args()
 build = args.build_dir.resolve()
 build.mkdir(parents=True, exist_ok=True)
@@ -23,14 +23,23 @@ rc.write_bytes((root/'src/angband.rc').read_bytes().decode('euc_jp').encode('utf
 run([bin/'windres.exe','--codepage=65001','-I',root/'src','-i',rc,'-o',build/'angband.o'])
 run([bin/'gcc.exe','-mwindows','-static',*objects,build/'angband.o','-o',build/'TOband.exe','-lwinmm','-lcomdlg32','-lgdi32'])
 print('Built: ' + str(build/'TOband.exe'))
-# Package the runtime data beside the executable using Windows text encoding.
+# Update shipped game data while keeping saves and personal settings.
+edit_data_changed = False
 for source in (root/'lib').rglob('*'):
     target = build/'lib'/source.relative_to(root/'lib')
     if source.is_dir():
         target.mkdir(parents=True, exist_ok=True)
-    elif not target.exists():
+    elif source.relative_to(root/'lib').parts[0] in ('edit', 'file', 'help', 'info', 'xtra') or not target.exists():
         target.parent.mkdir(parents=True, exist_ok=True)
         data = source.read_bytes()
         if source.suffix.lower() not in ('.fon', '.fnt'):
             data = data.decode('euc_jp').encode('cp932')
-        target.write_bytes(data)
+        if not target.exists() or target.read_bytes() != data:
+            if source.relative_to(root/'lib').parts[0] == 'edit':
+                edit_data_changed = True
+            target.write_bytes(data)
+# Cached tables must be rebuilt after monster/item definitions or limits change.
+if edit_data_changed:
+    for cached in (build/'lib/data').glob('*.raw'):
+        cached.unlink()
+print('Runtime folder: ' + str(build))

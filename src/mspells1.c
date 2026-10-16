@@ -12,6 +12,14 @@
 
 #include "angband.h"
 
+/* Reuse the three dark gods' attacks without changing the caster's identity. */
+int choose_dark_god_special(int r_idx, bool allow_death)
+{
+    static const int attacks[] = {MON_ASMODE, MON_DAGDA, MON_DIABLO};
+    if (r_idx != MON_DEMUNZA) return r_idx;
+    return attacks[randint0(allow_death ? 3 : 2)];
+}
+
 
 /*
  * And now for Intelligent monster attacks (including spells).
@@ -1748,7 +1756,7 @@ bool make_attack_spell(int m_idx)
 	f4 = r_ptr->flags4;
 	f5 = r_ptr->flags5;
 	f6 = r_ptr->flags6;
-    if (m_ptr->r_idx == MON_DIABLO && p_ptr->chp > p_ptr->mhp / 2) f6 &= ~RF6_SPECIAL;
+    if (m_ptr->r_idx == MON_DIABLO && (p_ptr->chp <= 0 || p_ptr->chp > p_ptr->mhp / 2)) f6 &= ~RF6_SPECIAL;
 	fa = r_ptr->flagsa;
 	if (get_cur_melem(m_ptr) < ELEM_FIRE || get_cur_melem(m_ptr) > ELEM_WIND)
 		fa &= ~RFA_BR_PURE_ELEM;
@@ -3808,7 +3816,9 @@ bool make_attack_spell(int m_idx)
 		case 160+7:
 		{
 			disturb(1, 0);
-			switch (m_ptr->r_idx)
+			switch (choose_dark_god_special(m_ptr->r_idx,
+                x == px && y == py && p_ptr->chp > 0 && p_ptr->chp <= p_ptr->mhp / 2 &&
+                projectable(m_ptr->fy, m_ptr->fx, py, px)))
 			{
 			case MON_ASMODE:
 #ifdef JP

@@ -6,5 +6,5 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
-echo Build complete: build\mingw\TOband.exe
+echo Build complete: build\party\TOband.exe
 pause

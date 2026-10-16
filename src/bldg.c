@@ -2199,6 +2199,16 @@ static void castle_quest(void)
 	/* No quest yet */
 	else if (q_ptr->status == QUEST_STATUS_UNTAKEN)
 	{
+        if (q_index == QUEST_BRUNHILD && a_info[ART_BRUNHILD].cur_num)
+        {
+#ifdef JP
+            msg_print("ブリュンヒルドは既に持ち出されているため、この任務は受けられません。");
+#else
+            msg_print("Brunhild has already been generated. This quest is unavailable.");
+#endif
+            return;
+        }
+
 		/* Assign a new quest */
 		if (q_ptr->type == QUEST_TYPE_KILL_ANY_LEVEL)
 		{
@@ -2275,6 +2285,7 @@ static void castle_quest(void)
 		{
 		case QUEST_MONTSALVAT:
 		case QUEST_HOLY_KNIGHTS:
+		case QUEST_BRUNHILD:
 			misc_event_flags |= EVENT_CANNOT_BE_WHITEKNIGHT;
 			break;
 

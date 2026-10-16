@@ -1127,6 +1127,22 @@ void py_pickup_aux(int o_idx)
 		    (quest[i].k_idx == o_ptr->name1))
 		{
 			if (record_fix_quest) do_cmd_write_nikki(NIKKI_FIX_QUEST_C, i, NULL);
+            if (i == QUEST_BRUNHILD)
+            {
+                int defender;
+#ifdef JP
+                msg_print("警報！ ブリュンヒルドが持ち出された！ 城内に警鐘が鳴り響いた！");
+#else
+                msg_print("ALARM! Brunhild has been stolen! Bells ring throughout the castle!");
+#endif
+                sound(SOUND_WARN);
+                for (defender = 1; defender < m_max; defender++)
+                {
+                    monster_type *guard = &m_list[defender];
+                    if (!guard->r_idx) continue;
+                    set_monster_csleep(defender, 0);
+                }
+            }
 			quest[i].status = QUEST_STATUS_COMPLETED;
 			quest[i].complev = (byte)p_ptr->lev;
 

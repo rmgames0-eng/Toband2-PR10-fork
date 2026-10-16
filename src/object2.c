@@ -2183,7 +2183,7 @@ static bool make_artifact_special(object_type *o_ptr)
 		/* Cannot make an artifact twice */
 		if (a_ptr->cur_num) continue;
 
-		if (a_ptr->gen_flags & TRG_QUESTITEM) continue;
+		if ((a_ptr->gen_flags & TRG_QUESTITEM) || artifact_is_reserved(i)) continue;
 		if (!(a_ptr->gen_flags & TRG_INSTA_ART)) continue;
 
 		/* XXX XXX Enforce minimum "depth" (loosely) */
@@ -2259,7 +2259,7 @@ static bool make_artifact(object_type *o_ptr)
 		/* Cannot make an artifact twice */
 		if (a_ptr->cur_num) continue;
 
-		if (a_ptr->gen_flags & TRG_QUESTITEM) continue;
+		if ((a_ptr->gen_flags & TRG_QUESTITEM) || artifact_is_reserved(i)) continue;
 
 		if (a_ptr->gen_flags & TRG_INSTA_ART) continue;
 

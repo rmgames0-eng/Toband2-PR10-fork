@@ -1630,3 +1630,5 @@ extern u32b random_unique_kills;
 extern void random_unique_reset(void);
 extern bool random_unique_available(int r_idx);
 extern bool random_unique_generate(int r_idx);
+
+extern int choose_dark_god_special(int r_idx, bool allow_death);

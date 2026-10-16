@@ -12,13 +12,30 @@ h = h.replace('    init_angband();', r"""
         assert(max_r_idx > 988 && r->level == 127);
         assert(r->hdice == 246 && r->hside == 271);
         assert(r->flags1 & RF1_FORCE_MAXHP);
+        assert(r->flags6 & RF6_SPECIAL);
+        assert(r->flags4 & RF4_BR_CHAO);
+        assert(r->flags4 & RF4_SHIFT_ELEM);
+        assert(r->flagsa & RFA_CHANGE_ELEM);
+        {
+            int j, counts[3] = {0,0,0};
+            for(j=0;j<3000;j++) {
+                int choice=choose_dark_god_special(MON_DEMUNZA,TRUE);
+                assert(choice==MON_ASMODE || choice==MON_DAGDA || choice==MON_DIABLO);
+                counts[choice==MON_ASMODE?0:choice==MON_DAGDA?1:2]++;
+                choice=choose_dark_god_special(MON_DEMUNZA,FALSE);
+                assert(choice==MON_ASMODE || choice==MON_DAGDA);
+            }
+            assert(counts[0]>800 && counts[1]>800 && counts[2]>800);
+            assert(choose_dark_god_special(MON_DIABLO,FALSE)==MON_DIABLO);
+        }
+
         assert(r->flags2 & RF2_AURA_FIRE);
         assert(!(r->flags1 & RF1_QUESTOR));
         assert(r->blow[0].effect == RBE_HELL && r->blow[2].effect == RBE_SHATTER);
         r->max_num = 1; r->cur_num = 0; m_max = 1;
         for (i = 0; i < 3; ++i) assert(r->blow[i].d_dice == 25 && r->blow[i].d_side == 15);
         assert(r->blow[1].effect == RBE_UN_BONUS);
-        assert(r->blow[3].effect == RBE_FIRE && r->blow[3].d_dice == 50 && r->blow[3].d_side == 50);
+        assert(r->blow[3].effect == RBE_SHATTER && r->blow[3].d_dice == 20 && r->blow[3].d_side == 20);
         cur_hgt = cur_wid = 7; py = px = 1;
         dungeon_type = DUNGEON_DEMON; dun_level = 1000;
         for (i = 0; i < 7; ++i) {

@@ -1110,6 +1110,8 @@ errr get_mon_num_prep(monster_hook_type monster_hook,
 		entry->prob2 = 0;
 		r_ptr = &r_info[entry->index];
 
+        if (hamilton_form_is_defeated(entry->index)) continue;
+
         /* Retired named variants remain only for old save compatibility. */
         if (r_ptr->flags1 & RF1_RAND_U_NAME) continue;
 
@@ -2313,6 +2315,7 @@ static bool place_monster_one(int who, int y, int x, int r_idx, u32b mode)
 
 	cptr		name = (r_name + r_ptr->name);
 
+    if (hamilton_form_is_defeated(r_idx)) return FALSE;
     if (r_ptr->flags1 & RF1_RAND_U_NAME) return FALSE;
 
     if (IS_RANDOM_UNIQUE(r_idx))
@@ -2371,6 +2374,9 @@ static bool place_monster_one(int who, int y, int x, int r_idx, u32b mode)
     }
     if (dungeon_type == DUNGEON_DEMON && dun_level &&
         !(r_ptr->flags3 & RF3_EVIL)) return FALSE;
+
+    if (r_idx == MON_ZENOBIA_LANCELOT && p_ptr->inside_quest != QUEST_BRUNHILD)
+        return FALSE;
 
 	/* Hack -- "unique" monsters must be "unique" */
 	if (((r_ptr->flags1 & (RF1_UNIQUE)) ||

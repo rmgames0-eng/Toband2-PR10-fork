@@ -2893,7 +2893,7 @@ static errr rd_savefile_new_aux(void)
 					/* Load quest item index */
 					rd_s16b(&quest[i].k_idx);
 
-					if (quest[i].k_idx)
+					if (quest[i].k_idx && i != QUEST_BRUNHILD)
 						a_info[quest[i].k_idx].gen_flags |= TRG_QUESTITEM;
 
 					rd_byte(&quest[i].flags);

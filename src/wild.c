@@ -598,8 +598,9 @@ static bool genocide_of_barmamutha(void)
 	char ch;
 	int wid, hgt;
 
-	if ((p_ptr->visit & (1L << (TOWN_BARMAMUTHA - 1))) ||
-	    !r_info[MON_RONWE].max_num || !r_info[MON_LEONARD].max_num)
+	if (quest[QUEST_BARMAMUTHA_L].status != QUEST_STATUS_UNTAKEN ||
+	    quest[QUEST_BARMAMUTHA_C].status != QUEST_STATUS_UNTAKEN ||
+	    !(misc_event_flags & EVENT_LIBERATION_OF_ARMORICA))
 	{
 		p_ptr->visit |= (1L << (TOWN_BARMAMUTHA - 1));
 		return FALSE;

@@ -3208,6 +3208,11 @@ bool create_named_art(int a_idx, int y, int x)
 
 	artifact_type *a_ptr = &a_info[a_idx];
 
+	/* Only the quest map may place the reserved sword. */
+	if (artifact_is_reserved(a_idx) &&
+	    !(p_ptr->inside_quest == QUEST_BRUNHILD && (init_flags & INIT_CREATE_DUNGEON)))
+		return FALSE;
+
 	/* Get local object */
 	q_ptr = &forge;
 

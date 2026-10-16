@@ -1911,7 +1911,8 @@ void monster_death(int m_idx, bool drop_item, bool is_stoned)
 				break;
 			}
 
-			if ((a_idx > 0) && ((randint0(100) < chance) || (p_ptr->wizard)))
+			if ((a_idx > 0) && !artifact_is_reserved(a_idx) &&
+                ((randint0(100) < chance) || (p_ptr->wizard)))
 			{
 				artifact_type *a_ptr = &a_info[a_idx];
 

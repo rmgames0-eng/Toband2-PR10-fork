@@ -5925,7 +5925,7 @@ bool teleport_swap(int dir, int plev)
 	}
 	c_ptr = &cave[ty][tx];
 
-	if (p_ptr->anti_tele)
+	if (p_ptr->anti_tele || p_ptr->inside_quest == QUEST_BRUNHILD)
 	{
 #ifdef JP
 		msg_print("不思議な力がテレポートを防いだ！");

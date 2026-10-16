@@ -4881,11 +4881,12 @@ static bool resurrect_player(int item, int percent, int reincarnate)
  * the game when he dies, since the "You die." message is shown before
  * setting the player to "dead".
  */
-/* Death still uses the normal resurrection and deferred party-death path. */
+/* Death drains a living, weakened player to zero HP without killing them. */
 bool diablo_death(cptr hit_from)
 {
-    if (p_ptr->is_dead || p_ptr->chp > p_ptr->mhp / 2) return FALSE;
-    take_hit(DAMAGE_LOSELIFE | DAMAGE_INSTANT, MAX(p_ptr->chp, 0) + 1, hit_from);
+    if (p_ptr->is_dead || p_ptr->chp <= 0 || p_ptr->chp > p_ptr->mhp / 2) return FALSE;
+    take_hit(DAMAGE_LOSELIFE | DAMAGE_INSTANT, p_ptr->chp, hit_from);
+    p_ptr->chp_frac = 0;
     return TRUE;
 }
 

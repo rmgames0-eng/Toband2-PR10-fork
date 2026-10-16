@@ -999,9 +999,9 @@ static void roff_aux(int r_idx, int mode)
 #endif
 
 #ifdef JP
-	if (flags6 & (RF6_SPECIAL))  {vp[vn] = (r_idx == MON_ASMODE) ? "ウンブラ（暗黒攻撃、耐性を無視する盲目と石化進行）" : (r_idx == MON_DAGDA) ? "ブレインストーム（混乱耐性を無視する魔力の嵐）" : (r_idx == MON_DIABLO) ? "デス（HPが半分以下の相手を即死させる）" : "特別な行動をする";color[vn++] = TERM_VIOLET;}
+	if (flags6 & (RF6_SPECIAL))  {vp[vn] = (r_idx == MON_DEMUNZA) ? "ウンブラ・デス・ブレインストーム" : (r_idx == MON_ASMODE) ? "ウンブラ（暗黒攻撃、耐性を無視する盲目と石化進行）" : (r_idx == MON_DAGDA) ? "ブレインストーム（混乱耐性を無視する魔力の嵐）" : (r_idx == MON_DIABLO) ? "デス（HPが半分以下の相手のHPを0にする）" : "特別な行動をする";color[vn++] = TERM_VIOLET;}
 #else
-	if (flags6 & (RF6_SPECIAL))  {vp[vn] = (r_idx == MON_ASMODE) ? "unleash Umbra (darkness, irresistible blindness and gradual petrification)" : (r_idx == MON_DAGDA) ? "unleash Brainstorm" : (r_idx == MON_DIABLO) ? "cast Death on a half-health target" : "do something";color[vn++] = TERM_VIOLET;}
+	if (flags6 & (RF6_SPECIAL))  {vp[vn] = (r_idx == MON_DEMUNZA) ? "unleash Umbra, Death or Brainstorm" : (r_idx == MON_ASMODE) ? "unleash Umbra (darkness, irresistible blindness and gradual petrification)" : (r_idx == MON_DAGDA) ? "unleash Brainstorm" : (r_idx == MON_DIABLO) ? "drain a half-health target to zero HP" : "do something";color[vn++] = TERM_VIOLET;}
 #endif
 
 	/* Describe inate attacks */

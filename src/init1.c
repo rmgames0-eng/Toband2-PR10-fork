@@ -4026,6 +4026,7 @@ static errr process_dungeon_file_aux(char *buf, int ymin, int xmin, int ymax, in
 			else if (monster_index)
 			{
 				int old_cur_num, old_max_num;
+                u32b old_flags7;
 				bool clone = FALSE;
 
 				if (monster_index < 0)
@@ -4037,7 +4038,8 @@ static errr process_dungeon_file_aux(char *buf, int ymin, int xmin, int ymax, in
 				old_max_num = r_info[monster_index].max_num;
 
 				/* Make alive again */
-				if (r_info[monster_index].flags1 & RF1_UNIQUE)
+                if ((r_info[monster_index].flags1 & RF1_UNIQUE) &&
+                    !hamilton_form_is_defeated(monster_index))
 				{
 					r_info[monster_index].cur_num = 0;
 					r_info[monster_index].max_num = 1;
@@ -4052,8 +4054,17 @@ static errr process_dungeon_file_aux(char *buf, int ymin, int xmin, int ymax, in
 					}
 				}
 
+                old_flags7 = r_info[monster_index].flags7;
+                if (p_ptr->inside_quest == QUEST_BRUNHILD && monster_index == MON_FIRE_BRASS)
+                    r_info[monster_index].flags7 &= ~RF7_UNIQUE2;
 				/* Place it */
 				place_monster_aux(0, *y, *x, monster_index, PM_ALLOW_SLEEP);
+                r_info[monster_index].flags7 = old_flags7;
+                if (p_ptr->inside_quest == QUEST_BRUNHILD && c_ptr->m_idx)
+                {
+                    set_hostile(&m_list[c_ptr->m_idx]);
+                    m_list[c_ptr->m_idx].mflag2 |= MFLAG2_NOPET;
+                }
 				if (clone)
 				{
 					/* clone */
@@ -4231,7 +4242,7 @@ static errr process_dungeon_file_aux(char *buf, int ymin, int xmin, int ymax, in
 				}
 
 				a_ptr = &a_info[q_ptr->k_idx];
-				a_ptr->gen_flags |= TRG_QUESTITEM;
+				if (q_idx != QUEST_BRUNHILD) a_ptr->gen_flags |= TRG_QUESTITEM;
 			}
 			return (0);
 		}
@@ -4778,6 +4789,13 @@ static cptr process_dungeon_file_expr(char **sp, char *fp)
 				sprintf(tmp, "%d", quest[atoi(b+6)].status);
 				v = tmp;
 			}
+
+            /* Independent, save-stable choices for the castle's four towers. */
+            else if (streq(b+1, "BRUNHILD_GUARD"))
+            {
+                sprintf(tmp, "%d", (int)((seed_town / 4) % 4));
+                v = tmp;
+            }
 
 			/* Random */
 			else if (prefix(b+1, "RANDOM"))
